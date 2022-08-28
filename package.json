@@ -13,6 +13,7 @@
     "discord.js": "^14.2.0",
     "dotenv": "^16.0.1",
     "ora": "^6.1.2",
+    "radash": "^7.0.0",
     "winston": "^3.8.1"
   },
   "devDependencies": {
