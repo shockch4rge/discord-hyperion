@@ -113,7 +113,11 @@ export class TritonClient extends Client {
             for (const [index, guildId] of devGuildIds.entries()) {
                 const route = Routes.applicationGuildCommands(process.env.DISCORD_APP_ID, guildId);
                 await rest.put(route, {
-                    body: [this.commands.map(command => command.buildSlash())],
+                    body: [
+                        this.commands
+                            .filter(c => c.isSlashCommand())
+                            .map(c => c.buildSlash().toJSON()),
+                    ],
                 });
                 spinner.text = `Registering commands in ${guildId}... (${index + 1}/${
                     devGuildIds.length
@@ -132,7 +136,11 @@ export class TritonClient extends Client {
         const route = Routes.applicationCommands(process.env.DISCORD_APP_ID);
 
         await rest.put(route, {
-            body: [this.commands.map(command => command.buildSlash()?.toJSON())],
+            body: [
+                this.commands
+                    .filter(c => c.isSlashCommand())
+                    .map(command => command.buildSlash().toJSON()),
+            ],
         });
 
         spinner.succeed(`Registered global commands!`);
