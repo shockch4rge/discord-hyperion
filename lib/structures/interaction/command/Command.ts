@@ -15,6 +15,10 @@ export abstract class Command {
         return Reflect.has(this, "slashRun");
     }
 
+    public isMessageCommand() {
+        return Reflect.has(this, "messageRun");
+    }
+
     public buildSlash() {
         const { name, description, args = [] } = this.options;
 
@@ -30,6 +34,7 @@ export abstract class Command {
                         option.setName(arg.name);
                         option.setDescription(arg.description);
                         option.setRequired(arg.required ?? true);
+                        option.setAutocomplete(arg.autocomplete ?? true);
 
                         arg.minLength && option.setMinLength(arg.minLength);
                         arg.maxLength && option.setMaxLength(arg.maxLength);
@@ -46,6 +51,7 @@ export abstract class Command {
                         option.setName(arg.name);
                         option.setDescription(arg.description);
                         option.setRequired(arg.required ?? true);
+                        option.setAutocomplete(arg.autocomplete ?? true);
 
                         arg.min && option.setMinValue(arg.min);
                         arg.max && option.setMaxValue(arg.max);
@@ -62,6 +68,7 @@ export abstract class Command {
                         option.setName(arg.name);
                         option.setDescription(arg.description);
                         option.setRequired(arg.required ?? true);
+                        option.setAutocomplete(arg.autocomplete ?? true);
 
                         arg.min && option.setMinValue(arg.min);
                         arg.max && option.setMaxValue(arg.max);
@@ -142,6 +149,8 @@ export type CommandOptions = {
     aliases?: string[];
     args?: CommandArg[];
     guards?: GuardFactory[];
+    ownerOnly?: boolean;
+    guildOnly?: boolean;
 };
 
 export type CommandArg = BaseArgOptions &
@@ -168,24 +177,31 @@ export type ChoiceableArg<T> = {
     choices?: { name: string; value: T }[];
 };
 
+export type AutocompleteableArg = {
+    autocomplete?: boolean;
+};
+
 export type ArgType<T extends OptionType<keyof SlashCommandOptionsOnlyBuilder>> = {
     type: Extract<T, T>;
 };
 
 export type StringArgOptions = ArgType<"string"> &
-    ChoiceableArg<string> & {
+    ChoiceableArg<string> &
+    AutocompleteableArg & {
         minLength?: number;
         maxLength?: number;
     };
 
 export type NumberArgOptions = ArgType<"number"> &
-    ChoiceableArg<number> & {
+    ChoiceableArg<number> &
+    AutocompleteableArg & {
         min?: number;
         max?: number;
     };
 
 export type IntegerArgOptions = ArgType<"integer"> &
-    ChoiceableArg<number> & {
+    ChoiceableArg<number> &
+    AutocompleteableArg & {
         min?: number;
         max?: number;
     };
