@@ -26,14 +26,6 @@
         "strictBindCallApply": true,
         "useUnknownInCatchVariables": true,
         "experimentalDecorators": true,
-        "baseUrl": "src",
-        "paths": {
-            "@client/*": ["src/client/*"],
-            "@structures/*": ["structures/*"],
-            "@interaction/*": ["structures/interaction/*"],
-            "@util/*": ["util/*"],
-        },
-        
         "outDir": "dist",
     },
     "exclude": [

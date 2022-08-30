@@ -7,10 +7,11 @@ import path from "node:path";
 import ora from "ora";
 import _ from "radash";
 
-import { Command } from "@interaction/command";
-import { DefaultLogger, Logger } from "@util/Logger";
-import { TritonError } from "@util/TritonError";
-import { Constructor } from "@util/types";
+import { SlashCommandContext } from "./structures/context";
+import { Command } from "./structures/interaction/command";
+import { DefaultLogger, Logger } from "./util/Logger";
+import { TritonError } from "./util/TritonError";
+import { Constructor } from "./util/types";
 
 export class TritonClient extends Client {
     public readonly options: TritonClientOptions;
@@ -47,6 +48,34 @@ export class TritonClient extends Client {
     private async import<T>(file: string) {
         const Class = (await import(file)) as Constructor<T>;
         return new Class();
+    }
+
+    private async registerEvents() {
+        this.on("ready", () => {});
+
+        this.on("interactionCreate", async interaction => {
+            if (interaction.isCommand()) {
+                const command = this.commands.get(interaction.commandName);
+
+                if (!command) {
+                    throw new TritonError("COMMAND_NOT_FOUND", interaction.commandName);
+                }
+
+                const context = new SlashCommandContext(this, interaction);
+
+                for (const GuardFactory of command.options.guards ?? []) {
+                    const guard = new GuardFactory();
+
+                    try {
+                        const passed = await guard.slashRun?.(context);
+                        if (!passed) {
+                            // yup extra stuff
+                            return;
+                        }
+                    } catch (e) {}
+                }
+            }
+        });
     }
 
     private async registerCommands() {
