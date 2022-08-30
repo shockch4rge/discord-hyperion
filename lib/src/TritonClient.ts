@@ -5,10 +5,11 @@ import fs from "fs/promises";
 import assert from "node:assert";
 import path from "node:path";
 import ora from "ora";
-import {} from "radash";
+import _ from "radash";
 
 import { Command } from "@interaction/command";
 import { DefaultLogger, Logger } from "@util/Logger";
+import { TritonError } from "@util/TritonError";
 import { Constructor } from "@util/types";
 
 export class TritonClient extends Client {
@@ -29,7 +30,7 @@ export class TritonClient extends Client {
         );
         assert(
             process.env.NODE_ENV,
-            "You must your 'NODE_ENV' variable in your .env file as 'development' or 'production'."
+            "You must set your 'NODE_ENV' variable in your .env file as 'development' or 'production'."
         );
 
         this.options = options;
@@ -39,13 +40,13 @@ export class TritonClient extends Client {
         };
     }
 
+    public async start() {
+        await this.registerCommands();
+    }
+
     private async import<T>(file: string) {
         const Class = (await import(file)) as Constructor<T>;
         return new Class();
-    }
-
-    public async start() {
-        await this.registerCommands();
     }
 
     private async registerCommands() {
@@ -57,9 +58,9 @@ export class TritonClient extends Client {
         let folderPath: string | undefined;
 
         if (routeParsing.type === "default") {
-            folderPath = path.join(__dirname, "./interactions/commands");
+            folderPath = path.join(__dirname, `"./interactions/commands"`);
         } else {
-            folderPath = routeParsing.directories.commands;
+            folderPath = `${routeParsing.directories.baseDir}/${routeParsing.directories.commands}`;
 
             if (!folderPath) {
                 spinner.stopAndPersist({
@@ -70,7 +71,13 @@ export class TritonClient extends Client {
             }
         }
 
-        const fileNames = await fs.readdir(folderPath);
+        let fileNames: string[];
+
+        try {
+            fileNames = await fs.readdir(folderPath);
+        } catch (e) {
+            throw new TritonError("FOLDER_NOT_FOUND", folderPath);
+        }
 
         const defaultFilter = (fileName: string) =>
             fileName.endsWith(".ts") || fileName.endsWith(".js");
@@ -158,18 +165,18 @@ export type LoggerOptions =
       };
 
 export type RouteParsingOptions = {
-    routeParsing:
-        | {
-              type: "default";
-          }
-        | {
-              type: "custom";
-              filter?: (fileName: string) => boolean;
-              directories: {
-                  commands?: string;
-                  buttons?: string;
-                  selectMenus?: string;
-                  modals?: string;
-              };
-          };
+    routeParsing: DefaultRouteParsing | CustomRouteParsing;
+};
+
+export type DefaultRouteParsing = { type: "default" };
+export type CustomRouteParsing = {
+    type: "custom";
+    filter?: (fileName: string) => boolean;
+    directories: {
+        baseDir?: string;
+        commands?: string;
+        buttons?: string;
+        selectMenus?: string;
+        modals?: string;
+    };
 };
