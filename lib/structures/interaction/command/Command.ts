@@ -8,8 +8,8 @@ import { GuardFactory } from "../../Guard";
 export abstract class Command {
     public constructor(public readonly options: CommandOptions) {}
 
-    public slashRun?(context: SlashCommandContext): Promise<unknown>;
-    public messageRun?(message: Message): Promise<unknown>;
+    public slashRun?(context: SlashCommandContext): Promise<void>;
+    public messageRun?(message: Message): Promise<void>;
 
     public isSlashCommand() {
         return Reflect.has(this, "slashRun");
@@ -149,6 +149,7 @@ export type CommandOptions = {
     aliases?: string[];
     args?: CommandArg[];
     guards?: GuardFactory[];
+    ephemeral?: boolean;
     ownerOnly?: boolean;
     guildOnly?: boolean;
 };
