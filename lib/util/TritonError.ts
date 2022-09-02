@@ -1,16 +1,19 @@
+import chalk from "chalk";
+
 export const TritonErrors = {
-    COMMAND_NOT_FOUND: (command: string) => `Command '${command}' not found.`,
-    FOLDER_NOT_FOUND: (folderPath: string) => `Folder '${folderPath}' not found.`,
+    PATH_NOT_FOUND: (path: string) => `Path not found: ${path}` as const,
+    COMMAND_NOT_FOUND: (command: string) => `Command '${command}' not found.` as const,
 };
 
 export type ErrorKey = keyof typeof TritonErrors;
 export type ErrorArgs<K extends ErrorKey> = Parameters<typeof TritonErrors[K]>;
 
 export class TritonError<K extends ErrorKey> extends Error {
-    public constructor(key: K, ...args: ErrorArgs<K>) {
-        super();
+    public constructor(
+        error: (errors: typeof TritonErrors) => typeof TritonErrors[K],
+        ...args: ErrorArgs<K>
+    ) {
         // @ts-ignore
-        this.message = TritonErrors[key](args);
-        this.name = key;
+        super(chalk.red`${error(TritonErrors)(...args)}`);
     }
 }
