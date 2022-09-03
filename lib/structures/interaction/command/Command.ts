@@ -20,12 +20,16 @@ export abstract class Command {
     }
 
     public buildSlash() {
-        const { name, description, args = [] } = this.options;
+        const { name, description, args = [], channel } = this.options;
 
         const builder = new SlashCommandBuilder();
 
         builder.setName(name);
         builder.setDescription(description);
+
+        if (channel === "guild") {
+            builder.setDMPermission(false);
+        }
 
         for (const arg of args) {
             switch (arg.type) {
@@ -39,8 +43,10 @@ export abstract class Command {
                         arg.minLength && option.setMinLength(arg.minLength);
                         arg.maxLength && option.setMaxLength(arg.maxLength);
 
-                        for (const choice of arg.choices ?? []) {
-                            option.addChoices(choice);
+                        if (arg.choices) {
+                            for (const choice of arg.choices) {
+                                option.addChoices(choice);
+                            }
                         }
 
                         return option;
@@ -56,8 +62,10 @@ export abstract class Command {
                         arg.min && option.setMinValue(arg.min);
                         arg.max && option.setMaxValue(arg.max);
 
-                        for (const choice of arg.choices ?? []) {
-                            option.addChoices(choice);
+                        if (arg.choices) {
+                            for (const choice of arg.choices) {
+                                option.addChoices(choice);
+                            }
                         }
 
                         return option;
@@ -73,8 +81,10 @@ export abstract class Command {
                         arg.min && option.setMinValue(arg.min);
                         arg.max && option.setMaxValue(arg.max);
 
-                        for (const choice of arg.choices ?? []) {
-                            option.addChoices(choice);
+                        if (arg.choices) {
+                            for (const choice of arg.choices) {
+                                option.addChoices(choice);
+                            }
                         }
 
                         return option;
@@ -150,8 +160,7 @@ export type CommandOptions = {
     args?: CommandArg[];
     guards?: GuardFactory[];
     ephemeral?: boolean;
-    ownerOnly?: boolean;
-    guildOnly?: boolean;
+    channel?: "guild" | "dm";
 };
 
 export type CommandArg = BaseArgOptions &
