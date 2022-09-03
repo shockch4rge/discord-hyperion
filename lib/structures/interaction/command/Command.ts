@@ -1,5 +1,6 @@
 import {
-    ContextMenuCommandInteraction, Message, SlashCommandBuilder, SlashCommandOptionsOnlyBuilder
+    ChatInputCommandInteraction, ContextMenuCommandInteraction, Message, SlashCommandBuilder,
+    SlashCommandOptionsOnlyBuilder
 } from "discord.js";
 
 import { SlashCommandContext } from "../../context";
@@ -231,3 +232,43 @@ export type AttachmentArgOptions = ArgType<"attachment">;
 export type OptionType<MethodName> = MethodName extends `add${infer T}Option`
     ? Uncapitalize<T>
     : never;
+
+export class CommandArgResolver {
+    public constructor(public readonly interaction: ChatInputCommandInteraction) {}
+
+    public string(name: string) {
+        return this.interaction.options.getString(name);
+    }
+
+    public integer(name: string) {
+        return this.interaction.options.getInteger(name);
+    }
+
+    public number(name: string) {
+        return this.interaction.options.getNumber(name);
+    }
+
+    public boolean(name: string) {
+        return this.interaction.options.getBoolean(name);
+    }
+
+    public user(name: string) {
+        return this.interaction.options.getUser(name);
+    }
+
+    public member(name: string) {
+        return this.interaction.options.getMember(name);
+    }
+
+    public channel(name: string) {
+        return this.interaction.options.getChannel(name);
+    }
+
+    public role(name: string) {
+        return this.interaction.options.getRole(name);
+    }
+
+    public mentionable(name: string) {
+        return this.interaction.options.getMentionable(name);
+    }
+}
