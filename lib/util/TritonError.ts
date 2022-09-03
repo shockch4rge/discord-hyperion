@@ -1,8 +1,8 @@
 import chalk from "chalk";
 
 export const TritonErrors = {
-    PATH_NOT_FOUND: (path: string) => `Path not found: ${path}` as const,
-    COMMAND_NOT_FOUND: (command: string) => `Command '${command}' not found.` as const,
+    PathNotFound: (path: string) => `Path not found: ${path}` as const,
+    CommandNotFound: (command: string) => `Command '${command}' not found.` as const,
 };
 
 export type ErrorKey = keyof typeof TritonErrors;
