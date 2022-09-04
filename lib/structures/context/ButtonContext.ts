@@ -15,20 +15,6 @@ export class ButtonContext<C extends Client = TritonClient> extends Context<C> {
         super(client, guild);
     }
 
-    public reply(options: ButtonReplyOptions) {
-        if (typeof options === "string") {
-            return this.interaction.reply({
-                content: options,
-            });
-        } else if (options instanceof EmbedBuilder) {
-            return this.interaction.reply({
-                embeds: [options],
-            });
-        } else {
-            return this.interaction.reply(options);
-        }
-    }
-
     public update(options: ButtonUpdateOptions) {
         if (typeof options === "string") {
             return this.interaction.update({

@@ -1,10 +1,10 @@
 import {
-    Client, EmbedBuilder, Guild, InteractionReplyOptions, InteractionUpdateOptions,
-    SelectMenuInteraction
+    ActionRowBuilder, Client, EmbedBuilder, Guild, InteractionReplyOptions,
+    InteractionUpdateOptions, SelectMenuInteraction
 } from "discord.js";
 
 import { TritonClient } from "../../TritonClient";
-import { Context } from "./Context";
+import { Context, ReplyInteractionOptions, UpdateInteractionOptions } from "./Context";
 
 export class SelectMenuContext<C extends Client = TritonClient> extends Context<C> {
     public readonly deferred: boolean;
@@ -30,21 +30,7 @@ export class SelectMenuContext<C extends Client = TritonClient> extends Context<
         return this.update(builder(new EmbedBuilder()));
     }
 
-    public reply(options: SelectMenuReplyOptions) {
-        if (typeof options === "string") {
-            return this.interaction.reply({
-                content: options,
-            });
-        } else if (options instanceof EmbedBuilder) {
-            return this.interaction.reply({
-                embeds: [options],
-            });
-        } else {
-            return this.interaction.reply(options);
-        }
-    }
-
-    public update(options: SelectMenuUpdateOptions) {
+    public update(options: UpdateInteractionOptions) {
         if (typeof options === "string") {
             return this.interaction.update({
                 content: options,
@@ -54,10 +40,14 @@ export class SelectMenuContext<C extends Client = TritonClient> extends Context<
                 embeds: [options],
             });
         } else {
-            return this.interaction.update(options);
+            return this.interaction.update({
+                ...options,
+                embeds: options.embeds?.map(build => build(new EmbedBuilder())),
+                components: options.components?.map(components =>
+                    // leave as any as our API abstracts ActionRow anyway
+                    new ActionRowBuilder<any>().addComponents(components)
+                ),
+            });
         }
     }
 }
-
-export type SelectMenuReplyOptions = string | EmbedBuilder | InteractionReplyOptions;
-export type SelectMenuUpdateOptions = string | EmbedBuilder | InteractionUpdateOptions;
