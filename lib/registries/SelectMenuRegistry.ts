@@ -10,10 +10,6 @@ import { importFile } from "../util/importFile";
 import { Registry } from "./Registry";
 
 export class SelectMenuRegistry extends Registry<SelectMenu> {
-    public constructor(public readonly client: TritonClient) {
-        super();
-    }
-
     public async register() {
         const spinner = ora({
             text: chalk.cyanBright`Registering select menus...`,

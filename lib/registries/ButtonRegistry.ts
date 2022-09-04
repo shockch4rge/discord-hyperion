@@ -10,10 +10,6 @@ import { importFile } from "../util/importFile";
 import { Registry } from "./Registry";
 
 export class ButtonRegistry extends Registry<Button> {
-    public constructor(public readonly client: TritonClient) {
-        super();
-    }
-
     public async register() {
         const spinner = ora({
             text: chalk.cyanBright`Registering buttons...`,
