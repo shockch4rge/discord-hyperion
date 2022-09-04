@@ -4,7 +4,6 @@ import { SelectMenuOptionBuilder } from "@discordjs/builders";
 
 import { SelectMenuContext } from "../../../context/SelectMenuContext";
 import { GuardFactory } from "../../../Guard";
-import { Component } from "../Component";
 
 export abstract class SelectMenu {
     public constructor(public readonly options: SelectMenuOptions) {}

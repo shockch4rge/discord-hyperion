@@ -1,11 +1,10 @@
 import {
-    ActionRowBuilder, AnyComponentBuilder, ButtonBuilder, ChatInputCommandInteraction, Client,
-    EmbedBuilder, Guild, InteractionReplyOptions
+    ActionRowBuilder, AnyComponentBuilder, ChatInputCommandInteraction, Client, EmbedBuilder, Guild,
+    InteractionReplyOptions
 } from "discord.js";
 
 import { TritonClient } from "../..";
 import { CommandArgResolver } from "../interaction/command/Command";
-import { Component } from "../interaction/component";
 import { Context } from "./Context";
 
 export class SlashCommandContext<C extends Client = TritonClient> extends Context<C> {
