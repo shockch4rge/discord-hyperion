@@ -1,6 +1,5 @@
 import assert from "assert";
 import chalk from "chalk";
-import { Collection } from "discord.js";
 import fs from "node:fs/promises";
 import ora from "ora";
 import path from "path";
@@ -8,9 +7,9 @@ import path from "path";
 import { SelectMenu } from "../structures/interaction/component";
 import { TritonClient } from "../TritonClient";
 import { importFile } from "../util/importFile";
-import { Manager } from "./Manager";
+import { Registry } from "./Registry";
 
-export class SelectMenuManager extends Collection<string, SelectMenu> implements Manager {
+export class SelectMenuRegistry extends Registry<SelectMenu> {
     public constructor(public readonly client: TritonClient) {
         super();
     }
@@ -24,7 +23,7 @@ export class SelectMenuManager extends Collection<string, SelectMenu> implements
         let folderPath: string | undefined;
 
         if (routeParsing.type === "default") {
-            folderPath = path.join(__dirname, `./interactions/select-menus`);
+            folderPath = path.join(this.importPath, `./interactions/select-menus`);
         } else {
             folderPath = `${routeParsing.directories.baseDir}/${routeParsing.directories.selectMenus}`;
 

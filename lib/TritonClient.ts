@@ -1,36 +1,28 @@
 import assert from "assert";
 import chalk from "chalk";
-import { Client, ClientOptions, Collection, REST, Routes, Snowflake } from "discord.js";
+import { Client, ClientOptions, Snowflake } from "discord.js";
 import dotenv from "dotenv";
-import fs from "fs/promises";
 import ora from "ora";
 import path from "path";
 import _ from "radash";
 
-import { ButtonManager } from "./managers/ButtonManager";
-import { CommandManager } from "./managers/CommandManager";
-import { SelectMenuManager } from "./managers/SelectMenuManager";
+import { ButtonRegistry, CommandRegistry, SelectMenuRegistry } from "./registries";
 import { ButtonContext, SlashCommandContext } from "./structures/context";
 import { SelectMenuContext } from "./structures/context/SelectMenuContext";
-import { Command } from "./structures/interaction/command";
 import { CommandArgResolver } from "./structures/interaction/command/Command";
-import { Button, SelectMenu } from "./structures/interaction/component";
 import { DefaultLogger, Logger } from "./util/Logger";
 import { TritonError } from "./util/TritonError";
-import { Constructor } from "./util/types";
 
 dotenv.config({
     path: path.join(process.cwd(), "./bot/.env"),
 });
 
-__dirname = path.join(process.cwd(), "./bot/src");
-
 export class TritonClient extends Client {
     public readonly options: TritonClientOptions;
     public readonly util: TritonClientUtils;
-    public readonly commands: CommandManager;
-    public readonly buttons: ButtonManager;
-    public readonly selectMenus: SelectMenuManager;
+    public readonly commands: CommandRegistry;
+    public readonly buttons: ButtonRegistry;
+    public readonly selectMenus: SelectMenuRegistry;
 
     public constructor(options: TritonClientOptions) {
         super(options);
@@ -45,9 +37,9 @@ export class TritonClient extends Client {
         );
 
         this.options = options;
-        this.commands = new CommandManager(this);
-        this.buttons = new ButtonManager(this);
-        this.selectMenus = new SelectMenuManager(this);
+        this.commands = new CommandRegistry(this);
+        this.buttons = new ButtonRegistry(this);
+        this.selectMenus = new SelectMenuRegistry(this);
         this.util = {
             logger: this.options.useDefaultLogger
                 ? new DefaultLogger(undefined)

@@ -1,6 +1,5 @@
 import assert from "assert";
 import chalk from "chalk";
-import { Collection } from "discord.js";
 import fs from "node:fs/promises";
 import ora from "ora";
 import path from "path";
@@ -8,9 +7,9 @@ import path from "path";
 import { Button } from "../structures/interaction/component";
 import { TritonClient } from "../TritonClient";
 import { importFile } from "../util/importFile";
-import { Manager } from "./Manager";
+import { Registry } from "./Registry";
 
-export class ButtonManager extends Collection<string, Button> implements Manager {
+export class ButtonRegistry extends Registry<Button> {
     public constructor(public readonly client: TritonClient) {
         super();
     }
@@ -24,7 +23,7 @@ export class ButtonManager extends Collection<string, Button> implements Manager
         let folderPath: string | undefined;
 
         if (routeParsing.type === "default") {
-            folderPath = path.join(__dirname, `./interactions/buttons`);
+            folderPath = path.join(this.importPath, `./interactions/buttons`);
         } else {
             folderPath = `${routeParsing.directories.baseDir}/${routeParsing.directories.buttons}`;
 

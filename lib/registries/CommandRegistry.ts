@@ -1,6 +1,6 @@
 import assert from "assert";
 import chalk from "chalk";
-import { Collection, REST, Routes } from "discord.js";
+import { REST, Routes } from "discord.js";
 import fs from "node:fs/promises";
 import ora from "ora";
 import path from "path";
@@ -8,9 +8,9 @@ import path from "path";
 import { Command } from "../structures/interaction/command";
 import { TritonClient } from "../TritonClient";
 import { importFile } from "../util/importFile";
-import { Manager } from "./Manager";
+import { Registry } from "./Registry";
 
-export class CommandManager extends Collection<string, Command> implements Manager {
+export class CommandRegistry extends Registry<Command> {
     public constructor(public readonly client: TritonClient) {
         super();
     }
@@ -24,7 +24,7 @@ export class CommandManager extends Collection<string, Command> implements Manag
         let folderPath: string | undefined;
 
         if (routeParsing.type === "default") {
-            folderPath = path.join(__dirname, `./interactions/commands`);
+            folderPath = path.join(this.importPath, `./interactions/commands`);
         } else {
             folderPath = `${routeParsing.directories.baseDir}/${routeParsing.directories.commands}`;
 
