@@ -1,6 +1,6 @@
 import {
-    ActionRowBuilder, ChatInputCommandInteraction, Client, EmbedBuilder, Guild,
-    InteractionReplyOptions
+    ActionRowBuilder, AnyComponentBuilder, ButtonBuilder, ChatInputCommandInteraction, Client,
+    EmbedBuilder, Guild, InteractionReplyOptions
 } from "discord.js";
 
 import { TritonClient } from "../..";
@@ -30,9 +30,9 @@ export class SlashCommandContext<C extends Client = TritonClient> extends Contex
         } else {
             return this.interaction.editReply({
                 ...options,
-                components: options.components?.map(c =>
+                components: options.components?.map(components =>
                     // leave as any as our API abstracts ActionRow anyway
-                    new ActionRowBuilder<any>().addComponents(c.map(c => c.build()))
+                    new ActionRowBuilder<any>().addComponents(components)
                 ),
             });
         }
@@ -52,7 +52,13 @@ export class SlashCommandContext<C extends Client = TritonClient> extends Contex
                 embeds: [options],
             });
         } else {
-            return this.interaction.followUp({});
+            return this.interaction.followUp({
+                ...options,
+                components: options.components?.map(components =>
+                    // leave as any as our API abstracts ActionRow anyway
+                    new ActionRowBuilder<any>().addComponents(components)
+                ),
+            });
         }
     }
 }
@@ -61,5 +67,5 @@ export type SlashReplyOptions =
     | string
     | EmbedBuilder
     | (Omit<InteractionReplyOptions, "components"> & {
-          components?: Component[][];
+          components?: AnyComponentBuilder[][];
       });
