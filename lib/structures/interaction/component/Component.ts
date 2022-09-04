@@ -1,5 +1,5 @@
 import { ComponentBuilder } from "discord.js";
 
 export interface Component {
-    build: () => ComponentBuilder;
+    build: (...args: any[]) => ComponentBuilder;
 }

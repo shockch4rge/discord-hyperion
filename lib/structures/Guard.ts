@@ -1,4 +1,5 @@
 import { ButtonContext, MessageCommandContext, SlashCommandContext } from "./context";
+import { SelectMenuContext } from "./context/SelectMenuContext";
 
 export abstract class Guard {
     public readonly options: GuardOptions;
@@ -14,6 +15,8 @@ export abstract class Guard {
     public onSlashFail?(context: SlashCommandContext): Promise<void>;
     public buttonRun?(context: ButtonContext): Promise<boolean>;
     public buttonFail?(context: ButtonContext): Promise<void>;
+    public selectMenuRun?(context: SelectMenuContext): Promise<boolean>;
+    public selectMenuFail?(context: SelectMenuContext): Promise<void>;
     public messageRun?(context: MessageCommandContext): Promise<boolean>;
 }
 

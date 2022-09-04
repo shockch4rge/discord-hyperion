@@ -8,9 +8,10 @@ import path from "path";
 import _ from "radash";
 
 import { ButtonContext, SlashCommandContext } from "./structures/context";
+import { SelectMenuContext } from "./structures/context/SelectMenuContext";
 import { Command } from "./structures/interaction/command";
 import { CommandArgResolver } from "./structures/interaction/command/Command";
-import { Button } from "./structures/interaction/component";
+import { Button, SelectMenu } from "./structures/interaction/component";
 import { DefaultLogger, Logger } from "./util/Logger";
 import { TritonError } from "./util/TritonError";
 import { Constructor } from "./util/types";
@@ -26,6 +27,7 @@ export class TritonClient extends Client {
     public readonly util: TritonClientUtils;
     public readonly commands: Collection<string, Command>;
     public readonly buttons: Collection<string, Button>;
+    public readonly selectMenus: Collection<string, SelectMenu>;
 
     public constructor(options: TritonClientOptions) {
         super(options);
@@ -42,6 +44,7 @@ export class TritonClient extends Client {
         this.options = options;
         this.commands = new Collection();
         this.buttons = new Collection();
+        this.selectMenus = new Collection();
         this.util = {
             logger: this.options.useDefaultLogger
                 ? new DefaultLogger(undefined)
@@ -52,6 +55,7 @@ export class TritonClient extends Client {
     public async start() {
         await this.registerCommands();
         await this.registerButtons();
+        await this.registerSelectMenus();
         await this.registerEvents();
 
         const login = ora("Logging in...");
@@ -150,6 +154,38 @@ export class TritonClient extends Client {
                 }
 
                 return;
+            }
+
+            if (interaction.isSelectMenu()) {
+                const selectMenu = this.selectMenus.get(interaction.customId);
+
+                if (!selectMenu) {
+                    throw new TritonError(e => e.SelectMenuNotFound, interaction.customId);
+                }
+
+                const context = new SelectMenuContext(this, interaction, interaction.guild);
+
+                for (const GuardFactory of selectMenu.options.guards ?? []) {
+                    const guard = new GuardFactory();
+
+                    try {
+                        if (guard.selectMenuRun) {
+                            const passed = await guard.selectMenuRun(context);
+                            if (!passed) {
+                                await guard.selectMenuFail!(context);
+                                return;
+                            }
+                        }
+
+                        await interaction.editReply({
+                            content: guard.options.message,
+                        });
+                    } catch (e) {}
+                }
+
+                try {
+                    await selectMenu.run(context);
+                } catch (e) {}
             }
         });
 
@@ -254,9 +290,11 @@ export class TritonClient extends Client {
             }
 
             spinner.succeed(
-                chalk.green`Registered commands for ${chalk.greenBright.bold(
-                    devGuildIds.length
-                )} development ${devGuildIds.length !== 1 ? "guilds" : "guild"}!`
+                chalk.green`Registered ${chalk.greenBright.bold(
+                    this.commands.size
+                )} commands for ${chalk.greenBright.bold(devGuildIds.length)} development ${
+                    devGuildIds.length !== 1 ? "guilds" : "guild"
+                }!`
             );
             return;
         }
@@ -335,6 +373,67 @@ export class TritonClient extends Client {
 
         spinner.succeed(
             chalk.green`Registered ${chalk.greenBright.bold(this.buttons.size)} buttons!`
+        );
+    }
+
+    private async registerSelectMenus() {
+        const spinner = ora({
+            text: chalk.cyanBright`Registering select menus...`,
+        }).start();
+
+        const routeParsing = this.options.routeParsing;
+        let folderPath: string | undefined;
+
+        if (routeParsing.type === "default") {
+            folderPath = path.join(__dirname, `./interactions/select-menus`);
+        } else {
+            folderPath = `${routeParsing.directories.baseDir}/${routeParsing.directories.selectMenus}`;
+
+            if (!folderPath) {
+                spinner.stopAndPersist({
+                    text: chalk.yellow`No 'select-menus' directory specified. Skipping for now.`,
+                    prefixText: "❓",
+                });
+                return;
+            }
+        }
+
+        const fileNames = await fs.readdir(folderPath!);
+
+        const defaultFilter = (fileName: string) =>
+            fileName.endsWith(".ts") || fileName.endsWith(".js");
+
+        const isFile =
+            routeParsing.type === "custom" ? routeParsing.filter ?? defaultFilter : defaultFilter;
+
+        for (const file of fileNames) {
+            if (!isFile(file)) continue;
+
+            const route = path.join(folderPath, file);
+            const selectMenu = await this.import<SelectMenu>(route);
+
+            for (const GuardFactory of selectMenu.options.guards ?? []) {
+                const guard = new GuardFactory();
+
+                assert(
+                    guard.selectMenuRun,
+                    `${chalk.redBright("Guard ")}${chalk.cyanBright(
+                        `'${guard.options.name}'`
+                    )}${chalk.redBright(" must have a ")}${chalk.cyanBright(
+                        "'selectMenuRun'"
+                    )}${chalk.redBright(" method for select menu ")}${chalk.cyanBright(
+                        `'${selectMenu.options.id}'`
+                    )}${chalk.redBright(".")}`
+                );
+            }
+
+            this.selectMenus.set(selectMenu.options.id, selectMenu);
+        }
+
+        spinner.succeed(
+            chalk.green`Registered ${chalk.greenBright.bold(this.selectMenus.size)} select ${
+                this.selectMenus.size !== 1 ? "menus" : "menu"
+            }!`
         );
     }
 }
