@@ -13,18 +13,5 @@ export abstract class SelectMenu {
 
 export type SelectMenuOptions = {
     id: string;
-    placeholder?: string;
-    minValues?: number;
-    maxValues?: number;
-    disabled?: boolean;
-    options?: SelectMenuOption[];
     guards?: GuardFactory[];
-};
-
-export type SelectMenuOption = {
-    label: string;
-    value: string;
-    description?: string;
-    emoji?: APIMessageComponentEmoji;
-    isDefault?: boolean;
 };
