@@ -1,4 +1,3 @@
-import assert from "assert";
 import chalk from "chalk";
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -44,21 +43,6 @@ export class ModalRegistry extends Registry<Modal> {
 
             const route = path.join(folderPath, file);
             const modal = await importFile<Modal>(route);
-
-            // for (const GuardFactory of modal.options.guards ?? []) {
-            //     const guard = new GuardFactory();
-
-            //     assert(
-            //         guard.modalRun,
-            //         `${chalk.redBright("Guard ")}${chalk.cyanBright(
-            //             `'${guard.options.name}'`
-            //         )}${chalk.redBright(" must have a ")}${chalk.cyanBright(
-            //             "'modalRun'"
-            //         )}${chalk.redBright(" method for select menu ")}${chalk.cyanBright(
-            //             `'${modal.options.id}'`
-            //         )}${chalk.redBright(".")}`
-            //     );
-            // }
 
             this.set(modal.options.id, modal);
         }

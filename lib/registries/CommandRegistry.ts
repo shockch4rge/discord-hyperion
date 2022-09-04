@@ -6,7 +6,6 @@ import ora from "ora";
 import path from "path";
 
 import { Command } from "../structures/interaction/command";
-import { TritonClient } from "../TritonClient";
 import { importFile } from "../util/importFile";
 import { Registry } from "./Registry";
 

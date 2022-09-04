@@ -5,9 +5,8 @@ import ora from "ora";
 import path from "path";
 
 import { SelectMenu } from "../structures/interaction/component";
-import { TritonClient } from "../TritonClient";
 import { importFile } from "../util/importFile";
-import { Registry } from "./Registry";
+import { Registry } from "./";
 
 export class SelectMenuRegistry extends Registry<SelectMenu> {
     public async register() {
