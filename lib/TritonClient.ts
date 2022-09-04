@@ -6,8 +6,8 @@ import ora from "ora";
 import path from "path";
 import _ from "radash";
 
-import { ButtonRegistry, CommandRegistry, SelectMenuRegistry } from "./registries";
-import { ButtonContext, SlashCommandContext } from "./structures/context";
+import { ButtonRegistry, CommandRegistry, ModalRegistry, SelectMenuRegistry } from "./registries";
+import { ButtonContext, ModalContext, SlashCommandContext } from "./structures/context";
 import { SelectMenuContext } from "./structures/context/SelectMenuContext";
 import { CommandArgResolver } from "./structures/interaction/command/Command";
 import { DefaultLogger, Logger } from "./util/Logger";
@@ -23,6 +23,7 @@ export class TritonClient extends Client {
     public readonly commands: CommandRegistry;
     public readonly buttons: ButtonRegistry;
     public readonly selectMenus: SelectMenuRegistry;
+    public readonly modals: ModalRegistry;
 
     public constructor(options: TritonClientOptions) {
         super(options);
@@ -40,6 +41,7 @@ export class TritonClient extends Client {
         this.commands = new CommandRegistry(this);
         this.buttons = new ButtonRegistry(this);
         this.selectMenus = new SelectMenuRegistry(this);
+        this.modals = new ModalRegistry(this);
         this.util = {
             logger: this.options.useDefaultLogger
                 ? new DefaultLogger(undefined)
@@ -51,6 +53,7 @@ export class TritonClient extends Client {
         await this.commands.register();
         await this.buttons.register();
         await this.selectMenus.register();
+        await this.modals.register();
         await this.registerEvents();
 
         const login = ora("Logging in...");
@@ -128,9 +131,7 @@ export class TritonClient extends Client {
                             }
                         }
 
-                        await interaction.editReply({
-                            content: guard.options.message,
-                        });
+                        await context.update(guard.options.message);
                     } catch (e) {
                         // TODO:
                     }
@@ -139,7 +140,10 @@ export class TritonClient extends Client {
                 try {
                     await button.run(context);
                 } catch (e) {
-                    // TODO:
+                    const err = e as Error;
+                    this.util.logger.warn(
+                        `Button '${button.options.id}' failed to run: ${err.stack}`
+                    );
                 }
 
                 return;
@@ -174,12 +178,33 @@ export class TritonClient extends Client {
 
                 try {
                     await selectMenu.run(context);
+                } catch (e) {
+                    const err = e as Error;
+                    this.util.logger.warn(
+                        `Modal ${selectMenu.options.id} failed to submit: ${err.stack}`
+                    );
+                }
+
+                return;
+            }
+
+            if (interaction.isModalSubmit()) {
+                console.log(interaction.isFromMessage());
+
+                if (!interaction.isFromMessage()) return;
+
+                const modal = this.modals.get(interaction.customId);
+
+                if (!modal) {
+                    throw new TritonError(e => e.ModalNotFound, interaction.customId);
+                }
+
+                const context = new ModalContext(interaction, this, interaction.guild);
+
+                try {
+                    await modal.run(context);
                 } catch (e) {}
             }
-        });
-
-        this.on("messageCreate", async message => {
-            if (message.author.bot) return;
         });
     }
 }
