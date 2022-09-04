@@ -5,7 +5,7 @@ import {
 
 import { TritonClient } from "../..";
 import { CommandArgResolver } from "../interaction/command/Command";
-import { Context } from "./Context";
+import { Context, ReplyInteractionOptions } from "./Context";
 
 export class SlashCommandContext<C extends Client = TritonClient> extends Context<C> {
     public constructor(
@@ -17,7 +17,7 @@ export class SlashCommandContext<C extends Client = TritonClient> extends Contex
         super(client, guild);
     }
 
-    public async reply(options: SlashReplyOptions) {
+    public async reply(options: ReplyInteractionOptions) {
         if (typeof options === "string") {
             return this.interaction.editReply({
                 content: options,
@@ -29,6 +29,7 @@ export class SlashCommandContext<C extends Client = TritonClient> extends Contex
         } else {
             return this.interaction.editReply({
                 ...options,
+                embeds: options.embeds?.map(build => build(new EmbedBuilder())),
                 components: options.components?.map(components =>
                     // leave as any as our API abstracts ActionRow anyway
                     new ActionRowBuilder<any>().addComponents(components)
@@ -37,11 +38,15 @@ export class SlashCommandContext<C extends Client = TritonClient> extends Contex
         }
     }
 
-    public async embed(builder: (embed: EmbedBuilder) => EmbedBuilder) {
+    public async embedReply(builder: (embed: EmbedBuilder) => EmbedBuilder) {
         return this.reply(builder(new EmbedBuilder()));
     }
 
-    public async followUp(options: SlashReplyOptions) {
+    public async embedFollowUp(builder: (embed: EmbedBuilder) => EmbedBuilder) {
+        return this.followUp(builder(new EmbedBuilder()));
+    }
+
+    public async followUp(options: ReplyInteractionOptions) {
         if (typeof options === "string") {
             return this.interaction.followUp({
                 content: options,
@@ -53,6 +58,7 @@ export class SlashCommandContext<C extends Client = TritonClient> extends Contex
         } else {
             return this.interaction.followUp({
                 ...options,
+                embeds: options.embeds?.map(build => build(new EmbedBuilder())),
                 components: options.components?.map(components =>
                     // leave as any as our API abstracts ActionRow anyway
                     new ActionRowBuilder<any>().addComponents(components)
@@ -61,10 +67,3 @@ export class SlashCommandContext<C extends Client = TritonClient> extends Contex
         }
     }
 }
-
-export type SlashReplyOptions =
-    | string
-    | EmbedBuilder
-    | (Omit<InteractionReplyOptions, "components"> & {
-          components?: AnyComponentBuilder[][];
-      });
