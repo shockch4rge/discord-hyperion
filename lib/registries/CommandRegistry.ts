@@ -46,6 +46,11 @@ export class CommandRegistry extends Registry<Command> {
             const route = path.join(folderPath, file);
             const command = await importFile<Command>(route);
 
+            assert(
+                !this.has(command.options.name),
+                `Command '${command.options.name}' already exists.`
+            );
+
             for (const GuardFactory of command.options.guards ?? []) {
                 const guard = new GuardFactory();
 
@@ -74,16 +79,64 @@ export class CommandRegistry extends Registry<Command> {
                         )}${chalk.redBright(".")}`
                     );
                 }
+
+                if (command.isContextMenuCommand()) {
+                    assert(
+                        guard.contextMenuRun,
+                        `${chalk.redBright("Guard ")}${chalk.cyanBright(
+                            `'${guard.options.name}'`
+                        )}${chalk.redBright(" must have a ")}${chalk.cyanBright(
+                            "'contextMenuRun'"
+                        )}${chalk.redBright(" method for command ")}${chalk.cyanBright(
+                            `'${command.options.name}'`
+                        )}${chalk.redBright(".")}`
+                    );
+
+                    assert(
+                        command.options.contextMenuType,
+                        chalk.redBright`Context command ${command.options.name} must have a contextMenuType.`
+                    );
+                }
             }
 
             this.set(command.options.name, command);
         }
 
+        const devGuildIds = this.client.options.devGuildIds;
+        const slashCommands = this.filter(command => command.isSlashCommand());
+        const contextMenuCommands = this.filter(command => command.isContextMenuCommand());
+
+        assert(
+            slashCommands.size <= 100,
+            chalk.redBright`You can only have 100 chat input commands per application.`
+        );
+        assert(
+            contextMenuCommands.size <= 10,
+            `${chalk.redBright
+                .bold`${contextMenuCommands.size}`}${chalk.redBright`/10 context menu commands registered.`}`
+        );
+
+        const userContextMenuCommands = contextMenuCommands.filter(
+            c => c.options.contextMenuType === "user" || c.options.contextMenuType === "client"
+        );
+        const messageContextMenuCommands = contextMenuCommands.filter(
+            c => c.options.contextMenuType === "message"
+        );
+
+        assert(
+            userContextMenuCommands.size <= 5,
+            `${chalk.redBright
+                .bold`${userContextMenuCommands.size}`}${chalk.redBright`/5 user context menu commands registered.`}`
+        );
+        assert(
+            messageContextMenuCommands.size <= 5,
+            `${chalk.redBright
+                .bold`${messageContextMenuCommands.size}`}${chalk.redBright`/5 message context menu commands registered.`}`
+        );
+
         const rest = new REST({
             version: "10",
         }).setToken(process.env.DISCORD_TOKEN!);
-
-        const devGuildIds = this.client.options.devGuildIds;
 
         if (devGuildIds && devGuildIds.length > 0) {
             assert(
@@ -95,7 +148,8 @@ export class CommandRegistry extends Registry<Command> {
                 const route = Routes.applicationGuildCommands(process.env.DISCORD_APP_ID!, guildId);
                 await rest.put(route, {
                     body: [
-                        ...this.filter(c => c.isSlashCommand()).map(c => c.buildSlash().toJSON()),
+                        ...slashCommands.map(command => command.buildSlash().toJSON()),
+                        ...contextMenuCommands.map(command => command.buildContextMenu().toJSON()),
                     ],
                 });
                 spinner.text = `Registering commands in ${guildId}... (${index + 1}/${
@@ -104,9 +158,11 @@ export class CommandRegistry extends Registry<Command> {
             }
 
             spinner.succeed(
-                chalk.green`Registered ${chalk.greenBright.bold(
-                    this.size
-                )} commands for ${chalk.greenBright.bold(devGuildIds.length)} development ${
+                chalk.green`Registered ${chalk.greenBright.bold(slashCommands.size)} slash ${
+                    slashCommands.size === 1 ? "command" : "commands"
+                } and ${contextMenuCommands.size} context menu ${
+                    contextMenuCommands.size === 1 ? "command" : "commands"
+                } for ${chalk.greenBright.bold(devGuildIds.length)} development ${
                     devGuildIds.length !== 1 ? "guilds" : "guild"
                 }!`
             );
@@ -122,9 +178,8 @@ export class CommandRegistry extends Registry<Command> {
 
         await rest.put(route, {
             body: [
-                ...this.filter(c => c.isSlashCommand()).map(command =>
-                    command.buildSlash().toJSON()
-                ),
+                ...slashCommands.map(command => command.buildSlash().toJSON()),
+                ...contextMenuCommands.map(command => command.buildContextMenu().toJSON()),
             ],
         });
 

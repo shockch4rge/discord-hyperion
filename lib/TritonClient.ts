@@ -7,9 +7,10 @@ import path from "path";
 import _ from "radash";
 
 import { ButtonRegistry, CommandRegistry, ModalRegistry, SelectMenuRegistry } from "./registries";
-import { ButtonContext, ModalContext, SlashCommandContext } from "./structures/context";
-import { SelectMenuContext } from "./structures/context/SelectMenuContext";
-import { CommandArgResolver } from "./structures/interaction/command/Command";
+import {
+    ButtonContext, ContextMenuCommandContext, ModalContext, SelectMenuContext, SlashCommandContext
+} from "./structures/context";
+import { CommandArgResolver } from "./structures/interaction/command";
 import { DefaultLogger, Logger } from "./util/Logger";
 import { TritonError } from "./util/TritonError";
 
@@ -104,10 +105,55 @@ export class TritonClient extends Client {
                         } catch (e) {}
                     }
 
-                    await command.slashRun?.(context);
+                    try {
+                        await command.slashRun?.(context);
+                    } catch (e) {}
+
+                    return;
                 }
 
                 return;
+            }
+
+            if (interaction.isContextMenuCommand()) {
+                const command = this.commands.get(interaction.commandName);
+
+                if (!command) {
+                    throw new TritonError(e => e.CommandNotFound, interaction.commandName);
+                }
+
+                if (
+                    interaction.isUserContextMenuCommand() &&
+                    command.options.contextMenuType === "client" &&
+                    interaction.targetUser.id !== this.user!.id
+                ) {
+                    return;
+                }
+
+                const context = new ContextMenuCommandContext(interaction, this, interaction.guild);
+
+                for (const GuardFactory of command.options.guards ?? []) {
+                    const guard = new GuardFactory();
+
+                    try {
+                        if (guard.contextMenuRun) {
+                            const passed = await guard.contextMenuRun(context);
+                            if (!passed) {
+                                await guard.contextMenuFail?.(context);
+                                return;
+                            }
+                        }
+                    } catch (e) {}
+                }
+
+                try {
+                    await command.contextMenuRun?.(context);
+                } catch (e) {
+                    const err = e as Error;
+                    this.util.logger.warn(
+                        `Button '${command.options.name}' failed to run: ${err.stack}`
+                    );
+                }
             }
 
             if (interaction.isButton()) {
@@ -189,8 +235,6 @@ export class TritonClient extends Client {
             }
 
             if (interaction.isModalSubmit()) {
-                console.log(interaction.isFromMessage());
-
                 if (!interaction.isFromMessage()) return;
 
                 const modal = this.modals.get(interaction.customId);

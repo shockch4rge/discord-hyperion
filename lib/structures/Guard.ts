@@ -1,4 +1,11 @@
-import { ButtonContext, MessageCommandContext, SlashCommandContext } from "./context";
+import {
+    MessageContextMenuCommandInteraction, UserContextMenuCommandInteraction
+} from "discord.js";
+
+import {
+    ButtonContext, ContextMenuCommandContext, HybridContextMenuCommandInteraction,
+    MessageCommandContext, SlashCommandContext
+} from "./context";
 import { SelectMenuContext } from "./context/SelectMenuContext";
 
 export abstract class Guard {
@@ -13,6 +20,12 @@ export abstract class Guard {
 
     public slashRun?(context: SlashCommandContext): Promise<boolean>;
     public onSlashFail?(context: SlashCommandContext): Promise<void>;
+    public contextMenuRun?<I extends HybridContextMenuCommandInteraction>(
+        context: ContextMenuCommandContext<I>
+    ): Promise<boolean>;
+    public contextMenuFail?<I extends HybridContextMenuCommandInteraction>(
+        context: ContextMenuCommandContext<I>
+    ): Promise<void>;
     public buttonRun?(context: ButtonContext): Promise<boolean>;
     public buttonFail?(context: ButtonContext): Promise<void>;
     public selectMenuRun?(context: SelectMenuContext): Promise<boolean>;

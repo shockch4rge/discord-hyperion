@@ -1,9 +1,11 @@
 import {
-    ChatInputCommandInteraction, ContextMenuCommandInteraction, Message, SlashCommandBuilder,
-    SlashCommandOptionsOnlyBuilder
+    ApplicationCommandType, ChatInputCommandInteraction, ContextMenuCommandBuilder, Message,
+    SlashCommandBuilder, SlashCommandOptionsOnlyBuilder
 } from "discord.js";
 
-import { SlashCommandContext } from "../../context";
+import {
+    ContextMenuCommandContext, HybridContextMenuCommandInteraction, SlashCommandContext
+} from "../../context";
 import { GuardFactory } from "../../Guard";
 
 export abstract class Command {
@@ -11,6 +13,9 @@ export abstract class Command {
 
     public slashRun?(context: SlashCommandContext): Promise<void>;
     public messageRun?(message: Message): Promise<void>;
+    public contextMenuRun?<I extends HybridContextMenuCommandInteraction>(
+        context: ContextMenuCommandContext<I>
+    ): Promise<void>;
 
     public isSlashCommand() {
         return Reflect.has(this, "slashRun");
@@ -18,6 +23,10 @@ export abstract class Command {
 
     public isMessageCommand() {
         return Reflect.has(this, "messageRun");
+    }
+
+    public isContextMenuCommand() {
+        return Reflect.has(this, "contextMenuRun");
     }
 
     public buildSlash() {
@@ -151,6 +160,21 @@ export abstract class Command {
 
         return builder;
     }
+
+    public buildContextMenu() {
+        const { name, channel = "guild", contextMenuType: type = "user" } = this.options;
+        const builder = new ContextMenuCommandBuilder();
+
+        builder.setName(name);
+        builder.setDMPermission(channel === "guild" ? false : true);
+        builder.setType(
+            type === "user" || type === "client"
+                ? ApplicationCommandType.User
+                : ApplicationCommandType.Message
+        );
+
+        return builder;
+    }
 }
 
 export type CommandOptions = {
@@ -162,6 +186,7 @@ export type CommandOptions = {
     guards?: GuardFactory[];
     ephemeral?: boolean;
     channel?: "guild" | "dm";
+    contextMenuType?: "user" | "message" | "client";
 };
 
 export type CommandArg = BaseArgOptions &
