@@ -5,7 +5,7 @@ import {
 
 import { TritonClient } from "../..";
 import { CommandArgResolver } from "../interaction/command/Command";
-import { Context, ReplyInteractionOptions } from "./Context";
+import { AltInteractionReplyOptions, Context } from "./Context";
 
 export class SlashCommandContext<C extends Client = TritonClient> extends Context<C> {
     public constructor(
@@ -17,7 +17,7 @@ export class SlashCommandContext<C extends Client = TritonClient> extends Contex
         super(client, guild);
     }
 
-    public async reply(options: ReplyInteractionOptions) {
+    public async reply(options: AltInteractionReplyOptions) {
         if (typeof options === "string") {
             return this.interaction.editReply({
                 content: options,
@@ -52,7 +52,7 @@ export class SlashCommandContext<C extends Client = TritonClient> extends Contex
         return this.followUp(builder(new EmbedBuilder()));
     }
 
-    public async followUp(options: ReplyInteractionOptions) {
+    public async followUp(options: AltInteractionReplyOptions) {
         if (typeof options === "string") {
             return this.interaction.followUp({
                 content: options,

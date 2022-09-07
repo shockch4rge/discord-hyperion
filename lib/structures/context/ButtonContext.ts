@@ -4,7 +4,7 @@ import {
 } from "discord.js";
 
 import { TritonClient } from "../..";
-import { Context, ReplyInteractionOptions, UpdateInteractionOptions } from "./Context";
+import { AltInteractionReplyOptions, AltInteractionUpdateOptions, Context } from "./Context";
 
 export class ButtonContext<C extends Client = TritonClient> extends Context<C> {
     public constructor(
@@ -15,7 +15,7 @@ export class ButtonContext<C extends Client = TritonClient> extends Context<C> {
         super(client, guild);
     }
 
-    public update(options: UpdateInteractionOptions) {
+    public update(options: AltInteractionUpdateOptions) {
         if (typeof options === "string") {
             return this.interaction.update({
                 content: options,
@@ -41,7 +41,7 @@ export class ButtonContext<C extends Client = TritonClient> extends Context<C> {
         }
     }
 
-    public reply(options: ReplyInteractionOptions) {
+    public reply(options: AltInteractionReplyOptions) {
         if (typeof options === "string") {
             return this.interaction.editReply({
                 content: options,

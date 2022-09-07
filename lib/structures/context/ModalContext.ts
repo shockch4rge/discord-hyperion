@@ -3,7 +3,7 @@ import {
 } from "discord.js";
 
 import { TritonClient } from "../../TritonClient";
-import { Context, UpdateInteractionOptions } from "./Context";
+import { AltInteractionUpdateOptions, Context } from "./Context";
 
 export class ModalContext<C extends TritonClient = TritonClient> extends Context<C> {
     public constructor(
@@ -22,7 +22,7 @@ export class ModalContext<C extends TritonClient = TritonClient> extends Context
         return this.interaction.fields.getTextInputValue(fieldId);
     }
 
-    public async update(options: UpdateInteractionOptions) {
+    public async update(options: AltInteractionUpdateOptions) {
         if (typeof options === "string") {
             return this.interaction.update({
                 content: options,

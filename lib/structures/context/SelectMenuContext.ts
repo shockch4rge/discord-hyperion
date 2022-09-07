@@ -4,7 +4,7 @@ import {
 } from "discord.js";
 
 import { TritonClient } from "../../TritonClient";
-import { Context, ReplyInteractionOptions, UpdateInteractionOptions } from "./Context";
+import { AltInteractionReplyOptions, AltInteractionUpdateOptions, Context } from "./Context";
 
 export class SelectMenuContext<C extends Client = TritonClient> extends Context<C> {
     public readonly deferred: boolean;
@@ -30,7 +30,7 @@ export class SelectMenuContext<C extends Client = TritonClient> extends Context<
         return this.update(builder(new EmbedBuilder()));
     }
 
-    public update(options: UpdateInteractionOptions) {
+    public update(options: AltInteractionUpdateOptions) {
         if (typeof options === "string") {
             return this.interaction.update({
                 content: options,

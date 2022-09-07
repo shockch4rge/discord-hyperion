@@ -4,7 +4,7 @@ import {
 } from "discord.js";
 
 import { TritonClient } from "../../TritonClient";
-import { Context, ReplyInteractionOptions } from "./Context";
+import { AltInteractionReplyOptions, Context } from "./Context";
 
 export class ContextMenuCommandContext<
     I extends HybridContextMenuCommandInteraction,
@@ -30,7 +30,7 @@ export class ContextMenuCommandContext<
         return this.followUp(builder(new EmbedBuilder()));
     }
 
-    public async reply(options: ReplyInteractionOptions) {
+    public async reply(options: AltInteractionReplyOptions) {
         if (typeof options === "string") {
             return this.interaction.editReply({
                 content: options,
@@ -56,7 +56,7 @@ export class ContextMenuCommandContext<
         }
     }
 
-    public async followUp(options: ReplyInteractionOptions) {
+    public async followUp(options: AltInteractionReplyOptions) {
         if (typeof options === "string") {
             return this.interaction.followUp({
                 content: options,
