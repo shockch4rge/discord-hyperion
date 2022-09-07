@@ -1,10 +1,10 @@
 import {
-    ButtonInteraction, Client, EmbedBuilder, Guild, InteractionReplyOptions,
+    ActionRowBuilder, ButtonInteraction, Client, EmbedBuilder, Guild, InteractionReplyOptions,
     InteractionUpdateOptions
 } from "discord.js";
 
 import { TritonClient } from "../..";
-import { Context } from "./Context";
+import { Context, UpdateInteractionOptions } from "./Context";
 
 export class ButtonContext<C extends Client = TritonClient> extends Context<C> {
     public constructor(
@@ -15,7 +15,7 @@ export class ButtonContext<C extends Client = TritonClient> extends Context<C> {
         super(client, guild);
     }
 
-    public update(options: ButtonUpdateOptions) {
+    public update(options: UpdateInteractionOptions) {
         if (typeof options === "string") {
             return this.interaction.update({
                 content: options,
@@ -25,10 +25,14 @@ export class ButtonContext<C extends Client = TritonClient> extends Context<C> {
                 embeds: [options],
             });
         } else {
-            return this.interaction.update(options);
+            return this.interaction.update({
+                ...options,
+                embeds: options.embeds?.map(build => build(new EmbedBuilder())),
+                components: options.components?.map(components =>
+                    // leave as any as our API abstracts ActionRow anyway
+                    new ActionRowBuilder<any>().addComponents(components)
+                ),
+            });
         }
     }
 }
-
-export type ButtonReplyOptions = string | EmbedBuilder | InteractionReplyOptions;
-export type ButtonUpdateOptions = string | EmbedBuilder | InteractionUpdateOptions;
