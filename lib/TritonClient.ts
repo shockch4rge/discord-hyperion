@@ -2,6 +2,7 @@ import assert from "assert";
 import chalk from "chalk";
 import { Client, ClientOptions, Snowflake } from "discord.js";
 import dotenv from "dotenv";
+import { Dirent } from "fs";
 import ora from "ora";
 import path from "path";
 import _ from "radash";
@@ -25,6 +26,7 @@ export class TritonClient extends Client {
     public readonly buttons: ButtonRegistry;
     public readonly selectMenus: SelectMenuRegistry;
     public readonly modals: ModalRegistry;
+    private readonly database: unknown;
 
     public constructor(options: TritonClientOptions) {
         super(options);
@@ -43,11 +45,16 @@ export class TritonClient extends Client {
         this.buttons = new ButtonRegistry(this);
         this.selectMenus = new SelectMenuRegistry(this);
         this.modals = new ModalRegistry(this);
+        this.database = options.database;
         this.util = {
             logger: this.options.useDefaultLogger
                 ? new DefaultLogger(undefined)
                 : this.options.logger(undefined),
         };
+    }
+
+    public db<DB = unknown>() {
+        return this.database as DB;
     }
 
     public async start() {
@@ -291,6 +298,7 @@ export type TritonBaseClientOptions = {
     ownerIds: Snowflake[];
     devGuildIds?: Snowflake[];
     cleanRemovedCommands?: boolean;
+    database?: unknown;
 };
 
 export type LoggerOptions =
@@ -305,7 +313,7 @@ export type DefaultRouteParsing = {
 };
 export type CustomRouteParsing = {
     type: "custom";
-    filter?: (fileName: string) => boolean;
+    filter?: (file: Dirent) => boolean;
     directories: {
         baseDir?: string;
         commands?: string;

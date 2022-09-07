@@ -30,18 +30,12 @@ export class ButtonRegistry extends Registry<Button> {
             }
         }
 
-        const fileNames = await fs.readdir(folderPath!);
+        const files = await fs.readdir(folderPath!, { withFileTypes: true });
 
-        const defaultFilter = (fileName: string) =>
-            fileName.endsWith(".ts") || fileName.endsWith(".js");
+        for (const file of files) {
+            if (!this.isValidFile(file)) continue;
 
-        const isFile =
-            routeParsing.type === "custom" ? routeParsing.filter ?? defaultFilter : defaultFilter;
-
-        for (const file of fileNames) {
-            if (!isFile(file)) continue;
-
-            const route = path.join(folderPath, file);
+            const route = path.join(folderPath, file.name);
             const button = await this.import<Button>(route);
 
             for (const GuardFactory of button.options.guards ?? []) {

@@ -143,7 +143,7 @@ export class CommandRegistry extends Registry<Command> {
                 const subcommands = (
                     await Promise.all(
                         subcommandFolder
-                            .filter(d => isFile(d.name))
+                            .filter(d => this.isValidFile(d))
                             .map(dirent =>
                                 this.importSubcommand(
                                     command,
@@ -161,7 +161,7 @@ export class CommandRegistry extends Registry<Command> {
                 continue;
             }
 
-            if (!isFile(file.name)) continue;
+            if (!this.isValidFile(file)) continue;
 
             const route = path.join(folderPath, file.name);
             const command = await this.import<Command>(route);

@@ -30,18 +30,12 @@ export class SelectMenuRegistry extends Registry<SelectMenu> {
             }
         }
 
-        const fileNames = await fs.readdir(folderPath!);
+        const files = await fs.readdir(folderPath!, { withFileTypes: true });
 
-        const defaultFilter = (fileName: string) =>
-            fileName.endsWith(".ts") || fileName.endsWith(".js");
+        for (const file of files) {
+            if (!this.isValidFile(file)) continue;
 
-        const isFile =
-            routeParsing.type === "custom" ? routeParsing.filter ?? defaultFilter : defaultFilter;
-
-        for (const file of fileNames) {
-            if (!isFile(file)) continue;
-
-            const route = path.join(folderPath, file);
+            const route = path.join(folderPath, file.name);
             const selectMenu = await this.import<SelectMenu>(route);
 
             for (const GuardFactory of selectMenu.options.guards ?? []) {
