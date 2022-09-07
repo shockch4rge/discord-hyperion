@@ -4,7 +4,6 @@ import path from "node:path";
 import ora from "ora";
 
 import { Modal } from "../structures/interaction/component/modal";
-import { importFile } from "../util/importFile";
 import { Registry } from "./Registry";
 
 export class ModalRegistry extends Registry<Modal> {
@@ -42,7 +41,7 @@ export class ModalRegistry extends Registry<Modal> {
             if (!isFile(file)) continue;
 
             const route = path.join(folderPath, file);
-            const modal = await importFile<Modal>(route);
+            const modal = await this.import<Modal>(route);
 
             this.set(modal.options.id, modal);
         }

@@ -7,7 +7,6 @@ import path from "path";
 import * as _ from "radash";
 
 import { Command, Subcommand } from "../structures/interaction/command";
-import { importFile } from "../util/importFile";
 import { TritonError } from "../util/TritonError";
 import { Registry } from "./Registry";
 
@@ -119,7 +118,7 @@ export class CommandRegistry extends Registry<Command> {
                 );
 
                 const commandDirent = commandFolder.find(f => !f.isDirectory())!;
-                const command = await importFile<Command>(
+                const command = await this.import<Command>(
                     path.join(folderPath, file.name, commandDirent.name)
                 );
 
@@ -165,7 +164,7 @@ export class CommandRegistry extends Registry<Command> {
             if (!isFile(file.name)) continue;
 
             const route = path.join(folderPath, file.name);
-            const command = await importFile<Command>(route);
+            const command = await this.import<Command>(route);
 
             assert(
                 !this.has(command.options.name),

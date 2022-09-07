@@ -11,5 +11,11 @@ export abstract class Registry<T> extends Collection<string, T> {
         this.importPath = path.join(process.cwd(), "./bot/src");
     }
 
+    protected async import<T>(path: string) {
+        // commonjs 'dynamic imports' return an object
+        const Class = Object.values((await import(path)) as Record<string, new () => T>)[0];
+        return new Class();
+    }
+
     public abstract register(): Promise<void>;
 }

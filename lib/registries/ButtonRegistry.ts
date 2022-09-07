@@ -5,7 +5,6 @@ import ora from "ora";
 import path from "path";
 
 import { Button } from "../structures/interaction/component";
-import { importFile } from "../util/importFile";
 import { Registry } from "./";
 
 export class ButtonRegistry extends Registry<Button> {
@@ -43,7 +42,7 @@ export class ButtonRegistry extends Registry<Button> {
             if (!isFile(file)) continue;
 
             const route = path.join(folderPath, file);
-            const button = await importFile<Button>(route);
+            const button = await this.import<Button>(route);
 
             for (const GuardFactory of button.options.guards ?? []) {
                 const guard = new GuardFactory();

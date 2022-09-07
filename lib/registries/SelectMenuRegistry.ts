@@ -5,7 +5,6 @@ import ora from "ora";
 import path from "path";
 
 import { SelectMenu } from "../structures/interaction/component";
-import { importFile } from "../util/importFile";
 import { Registry } from "./";
 
 export class SelectMenuRegistry extends Registry<SelectMenu> {
@@ -43,7 +42,7 @@ export class SelectMenuRegistry extends Registry<SelectMenu> {
             if (!isFile(file)) continue;
 
             const route = path.join(folderPath, file);
-            const selectMenu = await importFile<SelectMenu>(route);
+            const selectMenu = await this.import<SelectMenu>(route);
 
             for (const GuardFactory of selectMenu.options.guards ?? []) {
                 const guard = new GuardFactory();
