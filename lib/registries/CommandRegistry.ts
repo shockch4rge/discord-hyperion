@@ -1,19 +1,83 @@
 import assert from "assert";
 import chalk from "chalk";
-import { REST, Routes } from "discord.js";
+import { ApplicationCommand, Collection, REST, Routes } from "discord.js";
 import fs from "node:fs/promises";
 import ora from "ora";
 import path from "path";
+import * as _ from "radash";
 
-import { Command } from "../structures/interaction/command";
+import { Command, Subcommand } from "../structures/interaction/command";
 import { importFile } from "../util/importFile";
+import { TritonError } from "../util/TritonError";
 import { Registry } from "./Registry";
 
 export class CommandRegistry extends Registry<Command> {
+    private async importSubcommand(command: Command, path: string) {
+        const Class = Object.values(
+            (await import(path)) as Record<
+                string,
+                // get only the 'command' parameter from the constructor
+                new (command: ConstructorParameters<typeof Subcommand>[0]) => Subcommand
+            >
+        )[0];
+        assert(!_.isEmpty(Class), chalk.redBright`A subcommand class was not exported at ${path}`);
+        assert(
+            Subcommand.isPrototypeOf(Class),
+            chalk.redBright`Object at ${path} must extend the Subcommand class!`
+        );
+
+        return new Class(command);
+    }
+
     public async register() {
+        const devGuildIds = this.client.options.devGuildIds;
+        const shouldCleanRemoved = this.client.options.cleanRemovedCommands ?? false;
+
         const spinner = ora({
-            text: chalk.cyanBright`Registering commands...`,
+            text: chalk.cyanBright`${
+                shouldCleanRemoved ? "Cleaning removed commands..." : "Registering commands..."
+            }`,
         }).start();
+
+        const rest = new REST({
+            version: "10",
+        }).setToken(process.env.DISCORD_TOKEN!);
+
+        if (shouldCleanRemoved) {
+            for (const guildId of devGuildIds ?? []) {
+                const [err, commands] = await _.try(() =>
+                    rest.get(Routes.applicationGuildCommands(process.env.DISCORD_APP_ID!, guildId))
+                )();
+
+                if (err) {
+                    spinner.fail(chalk.redBright`Failed to get commands in guild ID [${guildId}].`);
+                    console.log(err);
+
+                    continue;
+                }
+
+                for (const command of commands as ApplicationCommand[]) {
+                    const [err] = await _.try(() =>
+                        rest.delete(
+                            Routes.applicationGuildCommand(
+                                process.env.DISCORD_APP_ID!,
+                                guildId,
+                                command.id
+                            )
+                        )
+                    )();
+
+                    if (err) {
+                        spinner.fail(
+                            chalk.redBright`Failed to delete command '${command.name}' in guild ID [${guildId}].`
+                        );
+                        throw new TritonError(e => e.DeleteGuildCommandsFail, guildId);
+                    }
+                }
+            }
+
+            spinner.text = chalk.cyanBright`Registering commands...`;
+        }
 
         const routeParsing = this.client.options.routeParsing;
         let folderPath: string | undefined;
@@ -32,7 +96,7 @@ export class CommandRegistry extends Registry<Command> {
             }
         }
 
-        const fileNames = await fs.readdir(folderPath!);
+        const files = await fs.readdir(folderPath, { withFileTypes: true });
 
         const defaultFilter = (fileName: string) =>
             fileName.endsWith(".ts") || fileName.endsWith(".js");
@@ -40,10 +104,67 @@ export class CommandRegistry extends Registry<Command> {
         const isFile =
             routeParsing.type === "custom" ? routeParsing.filter ?? defaultFilter : defaultFilter;
 
-        for (const file of fileNames) {
-            if (!isFile(file)) continue;
+        for (const file of files) {
+            // is a subcommand
+            if (file.isDirectory()) {
+                const commandFolder = await fs.readdir(path.join(folderPath, file.name), {
+                    withFileTypes: true,
+                });
 
-            const route = path.join(folderPath, file);
+                assert(
+                    commandFolder.length === 2 &&
+                        commandFolder.filter(f => !f.isDirectory()).length === 1 &&
+                        commandFolder.filter(f => f.isDirectory()).length === 1,
+                    "A command with subcommands must have a single file and a folder."
+                );
+
+                const commandDirent = commandFolder.find(f => !f.isDirectory())!;
+                const command = await importFile<Command>(
+                    path.join(folderPath, file.name, commandDirent.name)
+                );
+
+                assert(
+                    !command.isContextMenuCommand(),
+                    "A command with subcommands cannot be a context menu command."
+                );
+                assert(
+                    !command.options.args || command.options.args.length === 0,
+                    chalk.redBright`A command with subcommands cannot have arguments.`
+                );
+
+                const subcommandFolder = await fs.readdir(
+                    path.join(
+                        folderPath,
+                        file.name,
+                        commandFolder.find(f => f.isDirectory())!.name
+                    ),
+                    { withFileTypes: true }
+                );
+
+                const subcommands = (
+                    await Promise.all(
+                        subcommandFolder
+                            .filter(d => isFile(d.name))
+                            .map(dirent =>
+                                this.importSubcommand(
+                                    command,
+                                    path.join(folderPath!, file.name, "subcommands", dirent.name)
+                                )
+                            )
+                    )
+                ).reduce(
+                    (coll, sc) => coll.set(sc.options.name, sc),
+                    new Collection<string, Subcommand>()
+                );
+
+                command.options.subcommands = subcommands;
+                this.set(command.options.name, command);
+                continue;
+            }
+
+            if (!isFile(file.name)) continue;
+
+            const route = path.join(folderPath, file.name);
             const command = await importFile<Command>(route);
 
             assert(
@@ -102,7 +223,6 @@ export class CommandRegistry extends Registry<Command> {
             this.set(command.options.name, command);
         }
 
-        const devGuildIds = this.client.options.devGuildIds;
         const slashCommands = this.filter(command => command.isSlashCommand());
         const contextMenuCommands = this.filter(command => command.isContextMenuCommand());
 
@@ -134,10 +254,6 @@ export class CommandRegistry extends Registry<Command> {
                 .bold`${messageContextMenuCommands.size}`}${chalk.redBright`/5 message context menu commands registered.`}`
         );
 
-        const rest = new REST({
-            version: "10",
-        }).setToken(process.env.DISCORD_TOKEN!);
-
         if (devGuildIds && devGuildIds.length > 0) {
             assert(
                 process.env.NODE_ENV === "development",
@@ -149,7 +265,7 @@ export class CommandRegistry extends Registry<Command> {
                 await rest.put(route, {
                     body: [
                         ...slashCommands.map(command => command.buildSlash().toJSON()),
-                        ...contextMenuCommands.map(command => command.buildContextMenu().toJSON()),
+                        // ...contextMenuCommands.map(command => command.buildContextMenu().toJSON()),
                     ],
                 });
                 spinner.text = `Registering commands in ${guildId}... (${index + 1}/${
@@ -179,7 +295,7 @@ export class CommandRegistry extends Registry<Command> {
         await rest.put(route, {
             body: [
                 ...slashCommands.map(command => command.buildSlash().toJSON()),
-                ...contextMenuCommands.map(command => command.buildContextMenu().toJSON()),
+                // ...contextMenuCommands.map(command => command.buildContextMenu().toJSON()),
             ],
         });
 

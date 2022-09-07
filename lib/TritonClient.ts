@@ -87,6 +87,29 @@ export class TritonClient extends Client {
                         interaction.guild
                     );
 
+                    if (command.hasSubcommands()) {
+                        const subcommand = command.options.subcommands!.get(
+                            context.args.subcommand(true)
+                        );
+
+                        if (!subcommand) {
+                            throw new TritonError(
+                                e => e.SubcommandNotFound,
+                                interaction.options.getSubcommand(true)
+                            );
+                        }
+
+                        try {
+                            await subcommand.slashRun(context);
+                        } catch (e) {
+                            this.util.logger.warn(
+                                `'${command.options.name}-${subcommand.options.name}' failed to run.`
+                            );
+                        }
+
+                        return;
+                    }
+
                     for (const GuardFactory of command.options.guards ?? []) {
                         const guard = new GuardFactory();
 
@@ -267,22 +290,19 @@ export type TritonBaseClientOptions = {
     description: string;
     ownerIds: Snowflake[];
     devGuildIds?: Snowflake[];
+    cleanRemovedCommands?: boolean;
 };
 
 export type LoggerOptions =
-    | {
-          useDefaultLogger: true;
-      }
-    | {
-          useDefaultLogger: false;
-          logger: (channelId?: string) => Logger;
-      };
+    | { useDefaultLogger: true }
+    | { useDefaultLogger: false; logger: (channelId?: string) => Logger };
 
 export type RouteParsingOptions = {
     routeParsing: DefaultRouteParsing | CustomRouteParsing;
 };
-
-export type DefaultRouteParsing = { type: "default" };
+export type DefaultRouteParsing = {
+    type: "default";
+};
 export type CustomRouteParsing = {
     type: "custom";
     filter?: (fileName: string) => boolean;

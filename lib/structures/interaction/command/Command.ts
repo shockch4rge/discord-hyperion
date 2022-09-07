@@ -1,15 +1,20 @@
 import {
-    ApplicationCommandType, ChatInputCommandInteraction, ContextMenuCommandBuilder, Message,
-    SlashCommandBuilder, SlashCommandOptionsOnlyBuilder
+    ApplicationCommandType, ChatInputCommandInteraction, Collection, ContextMenuCommandBuilder,
+    Message, SlashCommandBuilder, SlashCommandOptionsOnlyBuilder, SlashCommandSubcommandBuilder
 } from "discord.js";
 
 import {
     ContextMenuCommandContext, HybridContextMenuCommandInteraction, SlashCommandContext
 } from "../../context";
 import { GuardFactory } from "../../Guard";
+import { Subcommand } from "./Subcommand";
 
 export abstract class Command {
-    public constructor(public readonly options: CommandOptions) {}
+    public readonly options: CommandWithSubcommandOptions;
+
+    public constructor(options: CommandOptions) {
+        this.options = options;
+    }
 
     public slashRun?(context: SlashCommandContext): Promise<void>;
     public messageRun?(message: Message): Promise<void>;
@@ -18,11 +23,18 @@ export abstract class Command {
     ): Promise<void>;
 
     public isSlashCommand() {
-        return Reflect.has(this, "slashRun");
+        return (
+            (Reflect.has(this, "slashRun") && !this.hasSubcommands()) ||
+            (!Reflect.has(this, "slashRun") && this.hasSubcommands())
+        );
     }
 
     public isMessageCommand() {
         return Reflect.has(this, "messageRun");
+    }
+
+    public hasSubcommands() {
+        return this.options.subcommands ? this.options.subcommands.size > 0 : false;
     }
 
     public isContextMenuCommand() {
@@ -30,139 +42,170 @@ export abstract class Command {
     }
 
     public buildSlash() {
-        const { name, description, args = [], channel } = this.options;
+        const { name, description, args = [], enableInDms = false, subcommands } = this.options;
 
         const builder = new SlashCommandBuilder();
 
         builder.setName(name);
         builder.setDescription(description);
+        builder.setDMPermission(enableInDms);
 
-        if (channel === "guild") {
-            builder.setDMPermission(false);
+        if (subcommands) {
+            for (const [, subcommand] of subcommands) {
+                builder.addSubcommand(this.buildSubcommand(subcommand));
+            }
+
+            // return early there are no arguments to build
+            return builder;
         }
 
         for (const arg of args) {
-            switch (arg.type) {
-                case "string":
-                    builder.addStringOption(option => {
-                        option.setName(arg.name);
-                        option.setDescription(arg.description);
-                        option.setRequired(arg.required ?? true);
-                        option.setAutocomplete(arg.autocomplete ?? true);
+            this.addArg(builder, arg);
+        }
 
-                        arg.minLength && option.setMinLength(arg.minLength);
-                        arg.maxLength && option.setMaxLength(arg.maxLength);
+        return builder;
+    }
 
-                        if (arg.choices) {
-                            for (const choice of arg.choices) {
-                                option.addChoices(choice);
-                            }
+    private buildSubcommand(subcommand: Subcommand) {
+        const { name, description, args = [] } = subcommand.options;
+        const builder = new SlashCommandSubcommandBuilder();
+
+        builder.setName(name);
+        builder.setDescription(description);
+
+        for (const arg of args) {
+            this.addArg(builder, arg);
+        }
+
+        return builder;
+    }
+
+    private addArg(builder: SlashCommandBuilder | SlashCommandSubcommandBuilder, arg: CommandArg) {
+        switch (arg.type) {
+            case "string":
+                builder.addStringOption(option => {
+                    option.setName(arg.name);
+                    option.setDescription(arg.description);
+                    option.setRequired(arg.required ?? true);
+                    option.setAutocomplete(arg.autocomplete ?? true);
+
+                    arg.minLength && option.setMinLength(arg.minLength);
+                    arg.maxLength && option.setMaxLength(arg.maxLength);
+
+                    if (arg.choices) {
+                        for (const choice of arg.choices) {
+                            option.addChoices(choice);
                         }
+                    }
 
-                        return option;
-                    });
-                    break;
-                case "number":
-                    builder.addNumberOption(option => {
-                        option.setName(arg.name);
-                        option.setDescription(arg.description);
-                        option.setRequired(arg.required ?? true);
-                        option.setAutocomplete(arg.autocomplete ?? true);
+                    return option;
+                });
+                break;
+            case "number":
+                builder.addNumberOption(option => {
+                    option.setName(arg.name);
+                    option.setDescription(arg.description);
+                    option.setRequired(arg.required ?? true);
+                    option.setAutocomplete(arg.autocomplete ?? true);
 
-                        arg.min && option.setMinValue(arg.min);
-                        arg.max && option.setMaxValue(arg.max);
+                    arg.min && option.setMinValue(arg.min);
+                    arg.max && option.setMaxValue(arg.max);
 
-                        if (arg.choices) {
-                            for (const choice of arg.choices) {
-                                option.addChoices(choice);
-                            }
+                    if (arg.choices) {
+                        for (const choice of arg.choices) {
+                            option.addChoices(choice);
                         }
+                    }
 
-                        return option;
-                    });
-                    break;
-                case "integer":
-                    builder.addIntegerOption(option => {
-                        option.setName(arg.name);
-                        option.setDescription(arg.description);
-                        option.setRequired(arg.required ?? true);
-                        option.setAutocomplete(arg.autocomplete ?? true);
+                    return option;
+                });
+                break;
+            case "integer":
+                builder.addIntegerOption(option => {
+                    option.setName(arg.name);
+                    option.setDescription(arg.description);
+                    option.setRequired(arg.required ?? true);
+                    option.setAutocomplete(arg.autocomplete ?? true);
 
-                        arg.min && option.setMinValue(arg.min);
-                        arg.max && option.setMaxValue(arg.max);
+                    arg.min && option.setMinValue(arg.min);
+                    arg.max && option.setMaxValue(arg.max);
 
-                        if (arg.choices) {
-                            for (const choice of arg.choices) {
-                                option.addChoices(choice);
-                            }
+                    if (arg.choices) {
+                        for (const choice of arg.choices) {
+                            option.addChoices(choice);
                         }
+                    }
 
-                        return option;
-                    });
-                    break;
-                case "boolean":
-                    builder.addBooleanOption(option => {
-                        option.setName(arg.name);
-                        option.setDescription(arg.description);
-                        option.setRequired(arg.required ?? true);
+                    return option;
+                });
+                break;
+            case "boolean":
+                builder.addBooleanOption(option => {
+                    option.setName(arg.name);
+                    option.setDescription(arg.description);
+                    option.setRequired(arg.required ?? true);
 
-                        return option;
-                    });
-                    break;
-                case "mentionable":
-                    builder.addMentionableOption(option => {
-                        option.setName(arg.name);
-                        option.setDescription(arg.description);
-                        option.setRequired(arg.required ?? true);
+                    return option;
+                });
+                break;
+            case "mentionable":
+                builder.addMentionableOption(option => {
+                    option.setName(arg.name);
+                    option.setDescription(arg.description);
+                    option.setRequired(arg.required ?? true);
 
-                        return option;
-                    });
-                    break;
-                case "user":
-                    builder.addUserOption(option => {
-                        option.setName(arg.name);
-                        option.setDescription(arg.description);
-                        option.setRequired(arg.required ?? true);
+                    return option;
+                });
+                break;
+            case "user":
+                builder.addUserOption(option => {
+                    option.setName(arg.name);
+                    option.setDescription(arg.description);
+                    option.setRequired(arg.required ?? true);
 
-                        return option;
-                    });
-                    break;
-                case "channel":
-                    builder.addChannelOption(option => {
-                        option.setName(arg.name);
-                        option.setDescription(arg.description);
-                        option.setRequired(arg.required ?? true);
+                    return option;
+                });
+                break;
+            case "channel":
+                builder.addChannelOption(option => {
+                    option.setName(arg.name);
+                    option.setDescription(arg.description);
+                    option.setRequired(arg.required ?? true);
 
-                        return option;
-                    });
-                    break;
-                case "role":
-                    builder.addRoleOption(option => {
-                        option.setName(arg.name);
-                        option.setDescription(arg.description);
-                        option.setRequired(arg.required ?? true);
+                    return option;
+                });
+                break;
+            case "role":
+                builder.addRoleOption(option => {
+                    option.setName(arg.name);
+                    option.setDescription(arg.description);
+                    option.setRequired(arg.required ?? true);
 
-                        return option;
-                    });
-                    break;
-                case "attachment":
-                    builder.addAttachmentOption(option => {
-                        option.setName(arg.name);
-                        option.setDescription(arg.description);
-                        option.setRequired(arg.required ?? true);
+                    return option;
+                });
+                break;
+            case "attachment":
+                builder.addAttachmentOption(option => {
+                    option.setName(arg.name);
+                    option.setDescription(arg.description);
+                    option.setRequired(arg.required ?? true);
 
-                        return option;
-                    });
-                    break;
-                default:
-            }
+                    return option;
+                });
+                break;
+            default:
+                break;
         }
 
         return builder;
     }
 
     public buildContextMenu() {
-        const { name, channel = "guild", contextMenuType: type = "user" } = this.options;
+        const {
+            name,
+            enableInDms: channel = "guild",
+            contextMenuType: type = "user",
+        } = this.options;
         const builder = new ContextMenuCommandBuilder();
 
         builder.setName(name);
@@ -185,8 +228,12 @@ export type CommandOptions = {
     args?: CommandArg[];
     guards?: GuardFactory[];
     ephemeral?: boolean;
-    channel?: "guild" | "dm";
+    enableInDms?: boolean;
     contextMenuType?: "user" | "message" | "client";
+};
+
+export type CommandWithSubcommandOptions = CommandOptions & {
+    subcommands?: Collection<string, Subcommand>;
 };
 
 export type CommandArg = BaseArgOptions &
@@ -209,8 +256,8 @@ export type BaseArgOptions = {
     required?: boolean;
 };
 
-export type ChoiceableArg<T> = {
-    choices?: { name: string; value: T }[];
+export type ChoiceableArg<ValueType> = {
+    choices?: { name: string; value: ValueType }[];
 };
 
 export type AutocompleteableArg = {
@@ -295,5 +342,14 @@ export class CommandArgResolver {
 
     public mentionable(name: string) {
         return this.interaction.options.getMentionable(name);
+    }
+
+    public subcommand(required?: true): string;
+    public subcommand(required?: boolean): string | null {
+        if (required === true) {
+            return this.interaction.options.getSubcommand(true);
+        }
+
+        return this.interaction.options.getSubcommand();
     }
 }

@@ -10,6 +10,8 @@ export enum LogLevel {
 }
 
 export abstract class Logger {
+    public constructor(public readonly logChannelId?: string) {}
+
     public abstract log(level: LogLevel, message: string): void;
     public abstract error(message: string): void;
     public abstract warn(message: string): void;
