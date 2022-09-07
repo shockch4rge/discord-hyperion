@@ -22,6 +22,14 @@ export class ContextMenuCommandContext<
         return this.interaction.targetMessage;
     }
 
+    public async embedReply(builder: (embed: EmbedBuilder) => EmbedBuilder) {
+        return this.reply(builder(new EmbedBuilder()));
+    }
+
+    public async embedFollowUp(builder: (embed: EmbedBuilder) => EmbedBuilder) {
+        return this.followUp(builder(new EmbedBuilder()));
+    }
+
     public async reply(options: ReplyInteractionOptions) {
         if (typeof options === "string") {
             return this.interaction.editReply({
@@ -34,20 +42,18 @@ export class ContextMenuCommandContext<
         } else {
             return this.interaction.editReply({
                 ...options,
-                embeds: options.embeds?.map(build => build(new EmbedBuilder())),
+                embeds: options.embeds?.map(builder => {
+                    if (typeof builder === "function") {
+                        return builder(new EmbedBuilder());
+                    }
+
+                    return builder;
+                }),
                 components: options.components?.map(components =>
                     new ActionRowBuilder<any>().addComponents(components)
                 ),
             });
         }
-    }
-
-    public async embedReply(builder: (embed: EmbedBuilder) => EmbedBuilder) {
-        return this.reply(builder(new EmbedBuilder()));
-    }
-
-    public async embedFollowUp(builder: (embed: EmbedBuilder) => EmbedBuilder) {
-        return this.followUp(builder(new EmbedBuilder()));
     }
 
     public async followUp(options: ReplyInteractionOptions) {
@@ -62,7 +68,13 @@ export class ContextMenuCommandContext<
         } else {
             return this.interaction.followUp({
                 ...options,
-                embeds: options.embeds?.map(build => build(new EmbedBuilder())),
+                embeds: options.embeds?.map(builder => {
+                    if (typeof builder === "function") {
+                        return builder(new EmbedBuilder());
+                    }
+
+                    return builder;
+                }),
                 components: options.components?.map(components =>
                     // leave as any as our API abstracts ActionRow anyway
                     new ActionRowBuilder<any>().addComponents(components)

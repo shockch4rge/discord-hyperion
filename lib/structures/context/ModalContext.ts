@@ -34,7 +34,13 @@ export class ModalContext<C extends TritonClient = TritonClient> extends Context
         } else {
             return this.interaction.update({
                 ...options,
-                embeds: options.embeds?.map(build => build(new EmbedBuilder())),
+                embeds: options.embeds?.map(builder => {
+                    if (typeof builder === "function") {
+                        return builder(new EmbedBuilder());
+                    }
+
+                    return builder;
+                }),
                 components: options.components?.map(components =>
                     new ActionRowBuilder<any>().addComponents(components)
                 ),

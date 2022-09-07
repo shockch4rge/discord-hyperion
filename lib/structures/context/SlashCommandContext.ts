@@ -29,7 +29,13 @@ export class SlashCommandContext<C extends Client = TritonClient> extends Contex
         } else {
             return this.interaction.editReply({
                 ...options,
-                embeds: options.embeds?.map(build => build(new EmbedBuilder())),
+                embeds: options.embeds?.map(builder => {
+                    if (typeof builder === "function") {
+                        return builder(new EmbedBuilder());
+                    }
+
+                    return builder;
+                }),
                 components: options.components?.map(components =>
                     // leave as any as our API abstracts ActionRow anyway
                     new ActionRowBuilder<any>().addComponents(components)
@@ -58,7 +64,13 @@ export class SlashCommandContext<C extends Client = TritonClient> extends Contex
         } else {
             return this.interaction.followUp({
                 ...options,
-                embeds: options.embeds?.map(build => build(new EmbedBuilder())),
+                embeds: options.embeds?.map(builder => {
+                    if (typeof builder === "function") {
+                        return builder(new EmbedBuilder());
+                    }
+
+                    return builder;
+                }),
                 components: options.components?.map(components =>
                     // leave as any as our API abstracts ActionRow anyway
                     new ActionRowBuilder<any>().addComponents(components)
