@@ -30,11 +30,11 @@ export class CommandRegistry extends Registry<Command> {
 
     public async register() {
         const devGuildIds = this.client.options.devGuildIds;
-        const shouldCleanRemoved = this.client.options.cleanRemovedCommands ?? false;
+        const shouldCleanLeftoverCommands = this.client.options.cleanLeftoverCommands ?? false;
 
         const spinner = ora({
             text: chalk.cyanBright`${
-                shouldCleanRemoved ? "Cleaning removed commands..." : "Registering commands..."
+                shouldCleanLeftoverCommands ? "Cleaning removed commands..." : "Registering commands..."
             }`,
         }).start();
 
@@ -42,7 +42,7 @@ export class CommandRegistry extends Registry<Command> {
             version: "10",
         }).setToken(process.env.DISCORD_TOKEN!);
 
-        if (shouldCleanRemoved) {
+        if (shouldCleanLeftoverCommands) {
             for (const guildId of devGuildIds ?? []) {
                 const [err, commands] = await _.try(() =>
                     rest.get(Routes.applicationGuildCommands(process.env.DISCORD_APP_ID!, guildId))
@@ -96,12 +96,6 @@ export class CommandRegistry extends Registry<Command> {
         }
 
         const files = await fs.readdir(folderPath, { withFileTypes: true });
-
-        const defaultFilter = (fileName: string) =>
-            fileName.endsWith(".ts") || fileName.endsWith(".js");
-
-        const isFile =
-            routeParsing.type === "custom" ? routeParsing.filter ?? defaultFilter : defaultFilter;
 
         for (const file of files) {
             // is a subcommand
