@@ -6,7 +6,7 @@ import {
 import { TritonClient } from "../../TritonClient";
 import { Modify } from "../../util/types";
 
-export abstract class Context<C extends Client = TritonClient> {
+export abstract class Context<C extends TritonClient = TritonClient> {
     public constructor(public readonly client: C, public readonly guild: Guild | null) {}
 }
 

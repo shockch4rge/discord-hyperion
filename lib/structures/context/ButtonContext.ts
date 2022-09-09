@@ -6,7 +6,7 @@ import {
 import { TritonClient } from "../..";
 import { AltInteractionReplyOptions, AltInteractionUpdateOptions, Context } from "./Context";
 
-export class ButtonContext<C extends Client = TritonClient> extends Context<C> {
+export class ButtonContext<C extends TritonClient = TritonClient> extends Context<C> {
     public constructor(
         client: C,
         public readonly interaction: ButtonInteraction,

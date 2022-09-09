@@ -3,7 +3,7 @@ import { Client, EmbedBuilder, Guild, Message, ReplyMessageOptions } from "disco
 import { TritonClient } from "../..";
 import { Context } from "./Context";
 
-export class MessageCommandContext<C extends Client = TritonClient> extends Context<C> {
+export class MessageCommandContext<C extends TritonClient = TritonClient> extends Context<C> {
     public constructor(client: C, public readonly message: Message, guild: Guild | null) {
         super(client, guild);
     }

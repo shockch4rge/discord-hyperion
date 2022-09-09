@@ -7,7 +7,7 @@ import { TritonClient } from "../..";
 import { CommandArgResolver } from "../interaction/command/Command";
 import { AltInteractionReplyOptions, Context } from "./Context";
 
-export class SlashCommandContext<C extends Client = TritonClient> extends Context<C> {
+export class SlashCommandContext<C extends TritonClient = TritonClient> extends Context<C> {
     public constructor(
         client: C,
         public readonly interaction: ChatInputCommandInteraction,

@@ -1,21 +1,15 @@
-import {
-    ActionRowBuilder, Client, EmbedBuilder, Guild, InteractionReplyOptions,
-    InteractionUpdateOptions, SelectMenuInteraction
-} from "discord.js";
+import { ActionRowBuilder, EmbedBuilder, Guild, SelectMenuInteraction } from "discord.js";
 
 import { TritonClient } from "../../TritonClient";
 import { AltInteractionReplyOptions, AltInteractionUpdateOptions, Context } from "./Context";
 
-export class SelectMenuContext<C extends Client = TritonClient> extends Context<C> {
-    public readonly deferred: boolean;
-
+export class SelectMenuContext<C extends TritonClient = TritonClient> extends Context<C> {
     public constructor(
         client: C,
         public readonly interaction: SelectMenuInteraction,
         guild: Guild | null
     ) {
         super(client, guild);
-        this.deferred = false;
     }
 
     public get values() {
@@ -51,6 +45,32 @@ export class SelectMenuContext<C extends Client = TritonClient> extends Context<
                 }),
                 components: options.components?.map(components =>
                     // leave as any as our API abstracts ActionRow anyway
+                    new ActionRowBuilder<any>().addComponents(components)
+                ),
+            });
+        }
+    }
+
+    public reply(options: AltInteractionReplyOptions) {
+        if (typeof options === "string") {
+            return this.interaction.editReply({
+                content: options,
+            });
+        } else if (options instanceof EmbedBuilder) {
+            return this.interaction.editReply({
+                embeds: [options],
+            });
+        } else {
+            return this.interaction.editReply({
+                ...options,
+                embeds: options.embeds?.map(builder => {
+                    if (typeof builder === "function") {
+                        return builder(new EmbedBuilder());
+                    }
+
+                    return builder;
+                }),
+                components: options.components?.map(components =>
                     new ActionRowBuilder<any>().addComponents(components)
                 ),
             });
