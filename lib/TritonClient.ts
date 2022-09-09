@@ -137,7 +137,11 @@ export class TritonClient extends Client {
 
                     try {
                         await command.slashRun?.(context);
-                    } catch (e) {}
+                    } catch (e) {
+                        console.log(e);
+
+                        this.util.logger.warn(`'${command.options.name}' failed to run: ${e}`);
+                    }
 
                     return;
                 }
@@ -187,6 +191,7 @@ export class TritonClient extends Client {
             }
 
             if (interaction.isButton()) {
+                await interaction.deferUpdate();
                 const button = this.buttons.get(interaction.customId);
 
                 if (!button) {
@@ -297,7 +302,7 @@ export type TritonBaseClientOptions = {
     description: string;
     ownerIds: Snowflake[];
     devGuildIds?: Snowflake[];
-    cleanRemovedCommands?: boolean;
+    cleanLeftoverCommands?: boolean;
     database?: unknown;
 };
 
