@@ -21,7 +21,7 @@ dotenv.config({
 
 export class TritonClient extends Client {
     public readonly options: TritonClientOptions;
-    public readonly util: TritonClientUtils;
+    public readonly logger: Logger;
     public readonly commands: CommandRegistry;
     public readonly buttons: ButtonRegistry;
     public readonly selectMenus: SelectMenuRegistry;
@@ -46,11 +46,9 @@ export class TritonClient extends Client {
         this.selectMenus = new SelectMenuRegistry(this);
         this.modals = new ModalRegistry(this);
         this.database = options.database;
-        this.util = {
-            logger: this.options.useDefaultLogger
-                ? new DefaultLogger(undefined)
-                : this.options.logger(undefined),
-        };
+        this.logger = this.options.useDefaultLogger
+            ? new DefaultLogger(undefined)
+            : this.options.logger(undefined);
     }
 
     public db<DB = unknown>() {
@@ -109,7 +107,7 @@ export class TritonClient extends Client {
                         try {
                             await subcommand.slashRun(context);
                         } catch (e) {
-                            this.util.logger.warn(
+                            this.logger.warn(
                                 `'${command.options.name}-${subcommand.options.name}' failed to run.`
                             );
                         }
@@ -140,7 +138,7 @@ export class TritonClient extends Client {
                     } catch (e) {
                         console.log(e);
 
-                        this.util.logger.warn(`'${command.options.name}' failed to run: ${e}`);
+                        this.logger.warn(`'${command.options.name}' failed to run: ${e}`);
                     }
 
                     return;
@@ -184,7 +182,7 @@ export class TritonClient extends Client {
                     await command.contextMenuRun?.(context);
                 } catch (e) {
                     const err = e as Error;
-                    this.util.logger.warn(
+                    this.logger.warn(
                         `Button '${command.options.name}' failed to run: ${err.stack}`
                     );
                 }
@@ -222,9 +220,7 @@ export class TritonClient extends Client {
                     await button.run(context);
                 } catch (e) {
                     const err = e as Error;
-                    this.util.logger.warn(
-                        `Button '${button.options.id}' failed to run: ${err.stack}`
-                    );
+                    this.logger.warn(`Button '${button.options.id}' failed to run: ${err.stack}`);
                 }
 
                 return;
@@ -261,7 +257,7 @@ export class TritonClient extends Client {
                     await selectMenu.run(context);
                 } catch (e) {
                     const err = e as Error;
-                    this.util.logger.warn(
+                    this.logger.warn(
                         `Modal ${selectMenu.options.id} failed to submit: ${err.stack}`
                     );
                 }
@@ -288,7 +284,7 @@ export class TritonClient extends Client {
     }
 }
 
-export interface TritonClientUtils {
+export interface TritonCliens {
     logger: Logger;
 }
 
