@@ -12,15 +12,15 @@ import {
     ButtonContext, ContextMenuCommandContext, ModalContext, SelectMenuContext, SlashCommandContext
 } from "./structures/context";
 import { CommandArgResolver } from "./structures/interaction/command";
+import { HyperionError } from "./util/HyperionError";
 import { DefaultLogger, Logger } from "./util/Logger";
-import { TritonError } from "./util/TritonError";
 
 dotenv.config({
     path: path.join(process.cwd(), "./bot/.env"),
 });
 
-export class TritonClient extends Client {
-    public readonly options: TritonClientOptions;
+export class HyperionClient extends Client {
+    public readonly options: HyperionClientOptions;
     public readonly logger: Logger;
     public readonly commands: CommandRegistry;
     public readonly buttons: ButtonRegistry;
@@ -28,7 +28,7 @@ export class TritonClient extends Client {
     public readonly modals: ModalRegistry;
     private readonly database: unknown;
 
-    public constructor(options: TritonClientOptions) {
+    public constructor(options: HyperionClientOptions) {
         super(options);
 
         assert(
@@ -76,7 +76,7 @@ export class TritonClient extends Client {
                     const command = this.commands.get(interaction.commandName);
 
                     if (!command) {
-                        throw new TritonError(e => e.CommandNotFound, interaction.commandName);
+                        throw new HyperionError(e => e.CommandNotFound, interaction.commandName);
                     }
 
                     if (!command.isSlashCommand()) return;
@@ -98,7 +98,7 @@ export class TritonClient extends Client {
                         );
 
                         if (!subcommand) {
-                            throw new TritonError(
+                            throw new HyperionError(
                                 e => e.SubcommandNotFound,
                                 interaction.options.getSubcommand(true)
                             );
@@ -151,7 +151,7 @@ export class TritonClient extends Client {
                 const command = this.commands.get(interaction.commandName);
 
                 if (!command) {
-                    throw new TritonError(e => e.CommandNotFound, interaction.commandName);
+                    throw new HyperionError(e => e.CommandNotFound, interaction.commandName);
                 }
 
                 if (
@@ -193,7 +193,7 @@ export class TritonClient extends Client {
                 const button = this.buttons.get(interaction.customId);
 
                 if (!button) {
-                    throw new TritonError(e => e.ButtonNotFound, interaction.customId);
+                    throw new HyperionError(e => e.ButtonNotFound, interaction.customId);
                 }
 
                 const context = new ButtonContext(this, interaction, interaction.guild);
@@ -230,7 +230,7 @@ export class TritonClient extends Client {
                 const selectMenu = this.selectMenus.get(interaction.customId);
 
                 if (!selectMenu) {
-                    throw new TritonError(e => e.SelectMenuNotFound, interaction.customId);
+                    throw new HyperionError(e => e.SelectMenuNotFound, interaction.customId);
                 }
 
                 const context = new SelectMenuContext(this, interaction, interaction.guild);
@@ -271,7 +271,7 @@ export class TritonClient extends Client {
                 const modal = this.modals.get(interaction.customId);
 
                 if (!modal) {
-                    throw new TritonError(e => e.ModalNotFound, interaction.customId);
+                    throw new HyperionError(e => e.ModalNotFound, interaction.customId);
                 }
 
                 const context = new ModalContext(interaction, this, interaction.guild);
@@ -284,16 +284,16 @@ export class TritonClient extends Client {
     }
 }
 
-export interface TritonCliens {
+export interface HyperionCliens {
     logger: Logger;
 }
 
-export type TritonClientOptions = ClientOptions &
-    TritonBaseClientOptions &
+export type HyperionClientOptions = ClientOptions &
+    HyperionBaseClientOptions &
     RouteParsingOptions &
     LoggerOptions;
 
-export type TritonBaseClientOptions = {
+export type HyperionBaseClientOptions = {
     name: string;
     description: string;
     ownerIds: Snowflake[];

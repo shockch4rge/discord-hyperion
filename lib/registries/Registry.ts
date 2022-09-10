@@ -2,12 +2,12 @@ import { Collection } from "discord.js";
 import { Dirent } from "node:fs";
 import path from "node:path";
 
-import { TritonClient } from "../TritonClient";
+import { HyperionClient } from "../HyperionClient";
 
 export abstract class Registry<T> extends Collection<string, T> {
     public readonly importPath: string;
 
-    public constructor(public readonly client: TritonClient) {
+    public constructor(public readonly client: HyperionClient) {
         super();
         this.importPath = path.join(process.cwd(), "./bot/src");
     }

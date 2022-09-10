@@ -1,9 +1,9 @@
 import { Client, EmbedBuilder, Guild, Message, ReplyMessageOptions } from "discord.js";
 
-import { TritonClient } from "../..";
+import { HyperionClient } from "../..";
 import { Context } from "./Context";
 
-export class MessageCommandContext<C extends TritonClient = TritonClient> extends Context<C> {
+export class MessageCommandContext<C extends HyperionClient = HyperionClient> extends Context<C> {
     public constructor(client: C, public readonly message: Message, guild: Guild | null) {
         super(client, guild);
     }

@@ -1,6 +1,6 @@
 import chalk from "chalk";
 
-export const TritonErrors = {
+export const HyperionErrors = {
     PathNotFound: (path: string) => `Path not found: ${path}` as const,
     CommandNotFound: (command: string) => `Command '${command}' not found.` as const,
     SubcommandNotFound: (subcommand: string) => `Subcommand '${subcommand}' not found.` as const,
@@ -11,15 +11,15 @@ export const TritonErrors = {
         `Failed to delete commands in guild ID [${guildId}].` as const,
 };
 
-export type ErrorKey = keyof typeof TritonErrors;
-export type ErrorArgs<K extends ErrorKey> = Parameters<typeof TritonErrors[K]>;
+export type ErrorKey = keyof typeof HyperionErrors;
+export type ErrorArgs<K extends ErrorKey> = Parameters<typeof HyperionErrors[K]>;
 
-export class TritonError<K extends ErrorKey> extends Error {
+export class HyperionError<K extends ErrorKey> extends Error {
     public constructor(
-        error: (errors: typeof TritonErrors) => typeof TritonErrors[K],
+        error: (errors: typeof HyperionErrors) => typeof HyperionErrors[K],
         ...args: ErrorArgs<K>
     ) {
         // @ts-ignore until I figure out how to fix ...args' type
-        super(chalk.red`${error(TritonErrors)(...args)}`);
+        super(chalk.red`${error(HyperionErrors)(...args)}`);
     }
 }

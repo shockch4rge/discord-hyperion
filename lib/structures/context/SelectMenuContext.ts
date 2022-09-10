@@ -1,9 +1,9 @@
 import { ActionRowBuilder, EmbedBuilder, Guild, SelectMenuInteraction } from "discord.js";
 
-import { TritonClient } from "../../TritonClient";
+import { HyperionClient } from "../../HyperionClient";
 import { AltInteractionReplyOptions, AltInteractionUpdateOptions, Context } from "./Context";
 
-export class SelectMenuContext<C extends TritonClient = TritonClient> extends Context<C> {
+export class SelectMenuContext<C extends HyperionClient = HyperionClient> extends Context<C> {
     public constructor(
         client: C,
         public readonly interaction: SelectMenuInteraction,

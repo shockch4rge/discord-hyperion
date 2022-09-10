@@ -1,1 +1,1 @@
-export { TritonClient } from "./TritonClient";
+export { HyperionClient } from "./HyperionClient";

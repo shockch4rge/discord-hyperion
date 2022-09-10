@@ -3,12 +3,12 @@ import {
     MessageContextMenuCommandInteraction, User, UserContextMenuCommandInteraction
 } from "discord.js";
 
-import { TritonClient } from "../../TritonClient";
+import { HyperionClient } from "../../HyperionClient";
 import { AltInteractionReplyOptions, Context } from "./Context";
 
 export class ContextMenuCommandContext<
     I extends HybridContextMenuCommandInteraction,
-    C extends TritonClient = TritonClient
+    C extends HyperionClient = HyperionClient
 > extends Context<C> {
     public constructor(public readonly interaction: I, client: C, guild: Guild | null) {
         super(client, guild);

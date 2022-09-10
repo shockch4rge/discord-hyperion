@@ -2,10 +2,10 @@ import {
     ActionRowBuilder, ComponentType, EmbedBuilder, Guild, ModalMessageModalSubmitInteraction
 } from "discord.js";
 
-import { TritonClient } from "../../TritonClient";
+import { HyperionClient } from "../../HyperionClient";
 import { AltInteractionUpdateOptions, Context } from "./Context";
 
-export class ModalContext<C extends TritonClient = TritonClient> extends Context<C> {
+export class ModalContext<C extends HyperionClient = HyperionClient> extends Context<C> {
     public constructor(
         public readonly interaction: ModalMessageModalSubmitInteraction,
         client: C,

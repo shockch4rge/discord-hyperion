@@ -3,10 +3,10 @@ import {
     InteractionUpdateOptions
 } from "discord.js";
 
-import { TritonClient } from "../../TritonClient";
+import { HyperionClient } from "../../HyperionClient";
 import { Modify } from "../../util/types";
 
-export abstract class Context<C extends TritonClient = TritonClient> {
+export abstract class Context<C extends HyperionClient = HyperionClient> {
     public constructor(public readonly client: C, public readonly guild: Guild | null) {}
 
     protected isEmbedBuildable(lol: unknown): lol is EmbedFnOrBuilder {

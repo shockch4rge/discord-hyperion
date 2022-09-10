@@ -1,1 +1,1 @@
-discord-triton
+discord-hyperion

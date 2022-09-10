@@ -7,7 +7,7 @@ import path from "path";
 import * as _ from "radash";
 
 import { Command, Subcommand } from "../structures/interaction/command";
-import { TritonError } from "../util/TritonError";
+import { HyperionError } from "../util/HyperionError";
 import { Registry } from "./Registry";
 
 export class CommandRegistry extends Registry<Command> {
@@ -34,7 +34,9 @@ export class CommandRegistry extends Registry<Command> {
 
         const spinner = ora({
             text: chalk.cyanBright`${
-                shouldCleanLeftoverCommands ? "Cleaning removed commands..." : "Registering commands..."
+                shouldCleanLeftoverCommands
+                    ? "Cleaning removed commands..."
+                    : "Registering commands..."
             }`,
         }).start();
 
@@ -70,7 +72,7 @@ export class CommandRegistry extends Registry<Command> {
                         spinner.fail(
                             chalk.redBright`Failed to delete command '${command.name}' in guild ID [${guildId}].`
                         );
-                        throw new TritonError(e => e.DeleteGuildCommandsFail, guildId);
+                        throw new HyperionError(e => e.DeleteGuildCommandsFail, guildId);
                     }
                 }
             }
@@ -280,7 +282,7 @@ export class CommandRegistry extends Registry<Command> {
 
         assert(
             process.env.NODE_ENV === "production",
-            chalk.redBright`You're not in production mode. Make sure that NODE_ENV in .env is set to 'production', OR add guild IDs in Triton's options.`
+            chalk.redBright`You're not in production mode. Make sure that NODE_ENV in .env is set to 'production', OR add guild IDs in Hyperion's options.`
         );
 
         const route = Routes.applicationCommands(process.env.DISCORD_APP_ID!);
