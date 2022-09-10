@@ -16,29 +16,34 @@ export class ButtonContext<C extends TritonClient = TritonClient> extends Contex
     }
 
     public update(options: AltInteractionUpdateOptions) {
+        if (this.interaction.replied) {
+            this.client.logger.warn("Interaction already replied to.");
+            return;
+        }
+
         if (typeof options === "string") {
             return this.interaction.update({
                 content: options,
             });
-        } else if (options instanceof EmbedBuilder) {
-            return this.interaction.update({
-                embeds: [options],
-            });
-        } else {
-            return this.interaction.update({
-                ...options,
-                embeds: options.embeds?.map(builder => {
-                    if (typeof builder === "function") {
-                        return builder(new EmbedBuilder());
-                    }
+        }
 
-                    return builder;
-                }),
-                components: options.components?.map(components =>
-                    new ActionRowBuilder<any>().addComponents(components)
-                ),
+        if (this.isEmbedBuildable(options)) {
+            const embed = options instanceof EmbedBuilder ? options : options(new EmbedBuilder());
+
+            return this.interaction.update({
+                embeds: [embed],
             });
         }
+
+        return this.interaction.update({
+            ...options,
+            embeds: options.embeds?.map(builder =>
+                builder instanceof EmbedBuilder ? builder : builder(new EmbedBuilder())
+            ),
+            components: options.components?.map(components =>
+                new ActionRowBuilder<any>().addComponents(components)
+            ),
+        });
     }
 
     public reply(options: AltInteractionReplyOptions) {
@@ -46,24 +51,24 @@ export class ButtonContext<C extends TritonClient = TritonClient> extends Contex
             return this.interaction.editReply({
                 content: options,
             });
-        } else if (options instanceof EmbedBuilder) {
-            return this.interaction.editReply({
-                embeds: [options],
-            });
-        } else {
-            return this.interaction.editReply({
-                ...options,
-                embeds: options.embeds?.map(builder => {
-                    if (typeof builder === "function") {
-                        return builder(new EmbedBuilder());
-                    }
+        }
 
-                    return builder;
-                }),
-                components: options.components?.map(components =>
-                    new ActionRowBuilder<any>().addComponents(components)
-                ),
+        if (this.isEmbedBuildable(options)) {
+            const embed = options instanceof EmbedBuilder ? options : options(new EmbedBuilder());
+
+            return this.interaction.editReply({
+                embeds: [embed],
             });
         }
+
+        return this.interaction.editReply({
+            ...options,
+            embeds: options.embeds?.map(builder =>
+                builder instanceof EmbedBuilder ? builder : builder(new EmbedBuilder())
+            ),
+            components: options.components?.map(components =>
+                new ActionRowBuilder<any>().addComponents(components)
+            ),
+        });
     }
 }

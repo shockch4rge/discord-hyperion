@@ -8,11 +8,21 @@ import { Modify } from "../../util/types";
 
 export abstract class Context<C extends TritonClient = TritonClient> {
     public constructor(public readonly client: C, public readonly guild: Guild | null) {}
+
+    protected isEmbedBuildable(lol: unknown): lol is EmbedFnOrBuilder {
+        return typeof lol === "function" || lol instanceof EmbedBuilder;
+    }
 }
 
-export type AltInteractionReplyOptions = string | EmbedBuilder | ModifiedInteractionReplyOptions;
+export type AltInteractionReplyOptions =
+    | string
+    | EmbedFnOrBuilder
+    | ModifiedInteractionReplyOptions;
 
-export type AltInteractionUpdateOptions = string | EmbedBuilder | ModifiedInteractionUpdateOptions;
+export type AltInteractionUpdateOptions =
+    | string
+    | EmbedFnOrBuilder
+    | ModifiedInteractionUpdateOptions;
 
 export type ModifiedInteractionReplyOptions = Modify<
     InteractionReplyOptions,
