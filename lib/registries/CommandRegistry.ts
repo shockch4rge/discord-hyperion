@@ -271,7 +271,7 @@ export class CommandRegistry extends Registry<Command> {
             spinner.succeed(
                 chalk.green`Registered ${chalk.greenBright.bold(slashCommands.size)} slash ${
                     slashCommands.size === 1 ? "command" : "commands"
-                } and ${contextMenuCommands.size} context menu ${
+                } and ${chalk.greenBright.bold(contextMenuCommands.size)} context menu ${
                     contextMenuCommands.size === 1 ? "command" : "commands"
                 } for ${chalk.greenBright.bold(devGuildIds.length)} development ${
                     devGuildIds.length !== 1 ? "guilds" : "guild"
