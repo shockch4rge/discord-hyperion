@@ -1,5 +1,5 @@
-import assert from "assert";
 import chalk from "chalk";
+import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import ora from "ora";
 import path from "path";
