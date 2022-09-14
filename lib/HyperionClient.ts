@@ -1,13 +1,15 @@
-import assert from "assert";
 import chalk from "chalk";
 import { Client, ClientOptions, Snowflake } from "discord.js";
 import dotenv from "dotenv";
 import { Dirent } from "fs";
+import assert from "node:assert/strict";
 import ora from "ora";
 import path from "path";
 import _ from "radash";
 
-import { ButtonRegistry, CommandRegistry, ModalRegistry, SelectMenuRegistry } from "./registries";
+import {
+    ButtonRegistry, CommandRegistry, EventRegistry, ModalRegistry, SelectMenuRegistry
+} from "./registries";
 import {
     ButtonContext, ContextMenuCommandContext, ModalContext, SelectMenuContext, SlashCommandContext
 } from "./structures/context";
@@ -26,6 +28,7 @@ export class HyperionClient extends Client {
     public readonly buttons: ButtonRegistry;
     public readonly selectMenus: SelectMenuRegistry;
     public readonly modals: ModalRegistry;
+    public readonly events: EventRegistry;
     private readonly database: unknown;
 
     public constructor(options: HyperionClientOptions) {
@@ -45,6 +48,8 @@ export class HyperionClient extends Client {
         this.buttons = new ButtonRegistry(this);
         this.selectMenus = new SelectMenuRegistry(this);
         this.modals = new ModalRegistry(this);
+        this.events = new EventRegistry(this);
+
         this.database = options.database;
         this.logger = this.options.useDefaultLogger
             ? new DefaultLogger(undefined)
@@ -93,15 +98,11 @@ export class HyperionClient extends Client {
                     );
 
                     if (command.hasSubcommands()) {
-                        const subcommand = command.options.subcommands!.get(
-                            context.args.subcommand(true)
-                        );
+                        const subcommandName = interaction.options.getSubcommand();
+                        const subcommand = command.options.subcommands!.get(subcommandName);
 
                         if (!subcommand) {
-                            throw new HyperionError(
-                                e => e.SubcommandNotFound,
-                                interaction.options.getSubcommand(true)
-                            );
+                            throw new HyperionError(e => e.SubcommandNotFound, subcommandName);
                         }
 
                         try {
@@ -137,7 +138,6 @@ export class HyperionClient extends Client {
                         await command.slashRun?.(context);
                     } catch (e) {
                         console.log(e);
-
                         this.logger.warn(`'${command.options.name}' failed to run: ${e}`);
                     }
 
@@ -284,10 +284,6 @@ export class HyperionClient extends Client {
     }
 }
 
-export interface HyperionCliens {
-    logger: Logger;
-}
-
 export type HyperionClientOptions = ClientOptions &
     HyperionBaseClientOptions &
     RouteParsingOptions &
@@ -300,6 +296,7 @@ export type HyperionBaseClientOptions = {
     devGuildIds?: Snowflake[];
     cleanLeftoverCommands?: boolean;
     database?: unknown;
+    defaultPrefix: string | RegExp;
 };
 
 export type LoggerOptions =
@@ -321,5 +318,6 @@ export type CustomRouteParsing = {
         buttons?: string;
         selectMenus?: string;
         modals?: string;
+        events?: string;
     };
 };
