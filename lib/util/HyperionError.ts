@@ -10,15 +10,13 @@ export const HyperionErrors = {
     DeleteGuildCommandsFail: (guildId: string) =>
         `Failed to delete commands in guild ID [${guildId}].` as const,
 };
+ 
+export type HErrors = typeof HyperionErrors;
+export type HErrorKey = keyof HErrors;
+export type HErrorArgs<K extends HErrorKey> = Parameters<HErrors[K]>;
 
-export type ErrorKey = keyof typeof HyperionErrors;
-export type ErrorArgs<K extends ErrorKey> = Parameters<typeof HyperionErrors[K]>;
-
-export class HyperionError<K extends ErrorKey> extends Error {
-    public constructor(
-        error: (errors: typeof HyperionErrors) => typeof HyperionErrors[K],
-        ...args: ErrorArgs<K>
-    ) {
+export class HyperionError<K extends HErrorKey = HErrorKey> extends Error {
+    public constructor(error: (errors: HErrors) => HErrors[K], ...args: HErrorArgs<K>) {
         // @ts-ignore until I figure out how to fix ...args' type
         super(chalk.red`${error(HyperionErrors)(...args)}`);
     }
