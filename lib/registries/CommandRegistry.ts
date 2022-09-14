@@ -12,13 +12,9 @@ import { Registry } from "./Registry";
 
 export class CommandRegistry extends Registry<Command> {
     private async importSubcommand(command: Command, path: string) {
-        const Class = Object.values(
-            (await import(path)) as Record<
-                string,
-                // get only the 'command' parameter from the constructor
-                new (command: ConstructorParameters<typeof Subcommand>[0]) => Subcommand
-            >
-        )[0];
+        const [Class] = Object.values(
+            (await import(path)) as Record<string, new (command: Command) => Subcommand>
+        );
         assert(!_.isEmpty(Class), chalk.redBright`A subcommand class was not exported at ${path}`);
         assert(
             Subcommand.isPrototypeOf(Class),
@@ -81,49 +77,55 @@ export class CommandRegistry extends Registry<Command> {
         }
 
         const routeParsing = this.client.options.routeParsing;
-        let folderPath: string | undefined;
+        let folderPath: string;
 
         if (routeParsing.type === "default") {
             folderPath = path.join(this.importPath, `./interactions/commands`);
         } else {
-            folderPath = `${routeParsing.directories.baseDir}/${routeParsing.directories.commands}`;
+            const baseDir = routeParsing.directories.baseDir;
+            const commandDir = routeParsing.directories.commands;
 
-            if (!folderPath) {
+            if (!baseDir || !commandDir) {
                 spinner.stopAndPersist({
                     text: chalk.yellow`No 'commands' directory specified. Skipping for now.`,
                     prefixText: "❓",
                 });
                 return;
             }
+
+            folderPath = `${baseDir}/${commandDir}`;
         }
 
-        const files = await fs.readdir(folderPath, { withFileTypes: true });
+        const commandFolder = await fs.readdir(folderPath, { withFileTypes: true });
 
-        for (const file of files) {
-            // is a subcommand
+        for (const file of commandFolder) {
+            // is subcommand
             if (file.isDirectory()) {
-                const commandFolder = await fs.readdir(path.join(folderPath, file.name), {
+                const parentCommandFolder = await fs.readdir(path.join(folderPath, file.name), {
                     withFileTypes: true,
                 });
 
                 assert(
-                    commandFolder.length === 2 &&
-                        commandFolder.filter(f => !f.isDirectory()).length === 1 &&
-                        commandFolder.filter(f => f.isDirectory()).length === 1,
+                    parentCommandFolder.length === 2 &&
+                        parentCommandFolder.filter(f => !f.isDirectory()).length === 1 &&
+                        parentCommandFolder.filter(f => f.isDirectory()).length === 1,
                     "A command with subcommands must have a single file and a folder."
                 );
 
-                const commandDirent = commandFolder.find(f => !f.isDirectory())!;
-                const command = await this.import<Command>(
-                    path.join(folderPath, file.name, commandDirent.name)
+                const parentCommand = await this.import<Command>(
+                    path.join(
+                        folderPath,
+                        file.name,
+                        parentCommandFolder.find(f => !f.isDirectory())!.name
+                    )
                 );
 
                 assert(
-                    !command.isContextMenuCommand(),
-                    "A command with subcommands cannot be a context menu command."
+                    !parentCommand.isContextMenuCommand(),
+                    "A parentCommand with subcommands cannot be a context menu command."
                 );
                 assert(
-                    !command.options.args || command.options.args.length === 0,
+                    !parentCommand.options.args || parentCommand.options.args.length === 0,
                     chalk.redBright`A command with subcommands cannot have arguments.`
                 );
 
@@ -131,19 +133,20 @@ export class CommandRegistry extends Registry<Command> {
                     path.join(
                         folderPath,
                         file.name,
-                        commandFolder.find(f => f.isDirectory())!.name
+                        parentCommandFolder.find(f => f.isDirectory())!.name
                     ),
                     { withFileTypes: true }
                 );
 
+                // import all subcommands in its folder and register each one into a collection
                 const subcommands = (
                     await Promise.all(
                         subcommandFolder
                             .filter(d => this.isValidFile(d))
-                            .map(dirent =>
+                            .map(d =>
                                 this.importSubcommand(
-                                    command,
-                                    path.join(folderPath!, file.name, "subcommands", dirent.name)
+                                    parentCommand,
+                                    path.join(folderPath!, file.name, "subcommands", d.name)
                                 )
                             )
                     )
@@ -152,8 +155,8 @@ export class CommandRegistry extends Registry<Command> {
                     new Collection<string, Subcommand>()
                 );
 
-                command.options.subcommands = subcommands;
-                this.set(command.options.name, command);
+                parentCommand.options.subcommands = subcommands;
+                this.set(parentCommand.options.name, parentCommand);
                 continue;
             }
 
@@ -260,7 +263,7 @@ export class CommandRegistry extends Registry<Command> {
                 await rest.put(route, {
                     body: [
                         ...slashCommands.map(command => command.buildSlash().toJSON()),
-                        // ...contextMenuCommands.map(command => command.buildContextMenu().toJSON()),
+                        ...contextMenuCommands.map(command => command.buildContextMenu().toJSON()),
                     ],
                 });
                 spinner.text = `Registering commands in ${guildId}... (${index + 1}/${
@@ -290,7 +293,7 @@ export class CommandRegistry extends Registry<Command> {
         await rest.put(route, {
             body: [
                 ...slashCommands.map(command => command.buildSlash().toJSON()),
-                // ...contextMenuCommands.map(command => command.buildContextMenu().toJSON()),
+                ...contextMenuCommands.map(command => command.buildContextMenu().toJSON()),
             ],
         });
 
