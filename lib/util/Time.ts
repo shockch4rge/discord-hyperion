@@ -7,6 +7,8 @@ export class Time {
     public static readonly Month = 30 * Time.Day;
     public static readonly Year = 365 * Time.Day;
 
+    private constructor() {}
+
     public static hours(hours: number) {
         return hours * Time.Hour;
     }
