@@ -3,13 +3,51 @@ import { ClientEvents } from "discord.js";
 import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import path from "node:path";
+import ora from "ora";
+import * as _ from "radash";
 
+import { HyperionClient } from "../HyperionClient";
 import { Event } from "../structures/Event";
 import { Registry } from "./Registry";
 
 export class EventRegistry extends Registry<Event> {
+    private async importEvent(path: string) {
+        const [Class] = Object.values(
+            (await import(path)) as Record<string, new (client: HyperionClient) => Event>
+        );
+        assert(!_.isEmpty(Class), chalk.redBright`A subcommand class was not exported at ${path}`);
+        assert(
+            Event.isPrototypeOf(Class),
+            chalk.redBright`Object at ${path} must extend the Event class!`
+        );
+
+        return new Class(this.client);
+    }
+
     public async register() {
-        const folderPath = path.join(this.importPath, "events");
+        const spinner = ora({
+            text: chalk.cyanBright`Registering events...`,
+        }).start();
+
+        const routeParsing = this.client.options.routeParsing;
+        let folderPath: string;
+
+        if (routeParsing.type === "default") {
+            folderPath = path.join(this.importPath, `./events`);
+        } else {
+            const baseDir = routeParsing.directories.baseDir;
+            const eventDir = routeParsing.directories.events;
+
+            if (!baseDir || !eventDir) {
+                spinner.stopAndPersist({
+                    text: chalk.yellow`No 'events' directory specified. Skipping for now.`,
+                    prefixText: "❓",
+                });
+                return;
+            }
+
+            folderPath = `${baseDir}/${eventDir}`;
+        }
 
         const eventFolder = await fs.readdir(folderPath, { withFileTypes: true });
 
@@ -19,7 +57,7 @@ export class EventRegistry extends Registry<Event> {
                 `Invalid file found in events folder: ${eventFile.name}`
             );
 
-            const event = await this.import<Event>(path.join(folderPath, eventFile.name));
+            const event = await this.importEvent(path.join(folderPath, eventFile.name));
             const eventName =
                 event.options.name ?? (eventFile.name.slice(0, -3) as keyof ClientEvents);
 
@@ -36,5 +74,13 @@ export class EventRegistry extends Registry<Event> {
 
             this.set(`${eventName}-${this}`, event);
         }
+    }
+
+    public deregister(key: string) {
+        const event = this.get(key);
+        if (!event) return;
+
+        this.client.off(event.options.name!, event.run);
+        this.delete(key);
     }
 }

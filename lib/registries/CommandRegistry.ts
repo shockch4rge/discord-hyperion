@@ -146,7 +146,7 @@ export class CommandRegistry extends Registry<Command> {
                             .map(d =>
                                 this.importSubcommand(
                                     parentCommand,
-                                    path.join(folderPath!, file.name, "subcommands", d.name)
+                                    path.join(folderPath, file.name, "subcommands", d.name)
                                 )
                             )
                     )

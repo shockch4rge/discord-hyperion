@@ -19,18 +19,21 @@ export class ButtonRegistry extends Registry<Button> {
         if (routeParsing.type === "default") {
             folderPath = path.join(this.importPath, `./interactions/buttons`);
         } else {
-            folderPath = `${routeParsing.directories.baseDir}/${routeParsing.directories.buttons}`;
+            const baseDir = routeParsing.directories.baseDir;
+            const buttonDir = routeParsing.directories.buttons;
 
-            if (!folderPath) {
+            if (!baseDir || !buttonDir) {
                 spinner.stopAndPersist({
                     text: chalk.yellow`No 'buttons' directory specified. Skipping for now.`,
                     prefixText: "❓",
                 });
                 return;
             }
+
+            folderPath = `${baseDir}/${buttonDir}`;
         }
 
-        const files = await fs.readdir(folderPath!, { withFileTypes: true });
+        const files = await fs.readdir(folderPath, { withFileTypes: true });
 
         for (const file of files) {
             if (!this.isValidFile(file)) continue;
