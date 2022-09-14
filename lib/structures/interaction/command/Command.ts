@@ -1,10 +1,18 @@
 import {
-    ApplicationCommandType, ChatInputCommandInteraction, Collection, ContextMenuCommandBuilder,
-    Message, SlashCommandBuilder, SlashCommandOptionsOnlyBuilder, SlashCommandSubcommandBuilder
+    ApplicationCommandType,
+    ChatInputCommandInteraction,
+    Collection,
+    ContextMenuCommandBuilder,
+    Message,
+    SlashCommandBuilder,
+    SlashCommandOptionsOnlyBuilder,
+    SlashCommandSubcommandBuilder,
 } from "discord.js";
 
 import {
-    ContextMenuCommandContext, HybridContextMenuCommandInteraction, SlashCommandContext
+    ContextMenuCommandContext,
+    HybridContextMenuCommandInteraction,
+    SlashCommandContext,
 } from "../../context";
 import { GuardFactory } from "../../Guard";
 import { Subcommand } from "./Subcommand";
@@ -344,12 +352,11 @@ export class CommandArgResolver {
         return this.interaction.options.getMentionable(name);
     }
 
-    public subcommand(required?: true): string;
-    public subcommand(required?: boolean): string | null {
-        if (required === true) {
-            return this.interaction.options.getSubcommand(true);
+    public subcommand(required?: true) {
+        if (required === undefined || required === true) {
+            return this.interaction.options.getSubcommand();
         }
 
-        return this.interaction.options.getSubcommand();
+        return this.interaction.options.getSubcommand(false);
     }
 }
