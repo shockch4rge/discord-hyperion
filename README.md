@@ -1,6 +1,7 @@
-<div style="background:#001225; margin-bottom:40px; padding:30px; display:flex; place-content:center; height:90px; border-radius:12px">
-    <img src="./assets/hyperion-hero.svg" draggable="false" alt="Hyperion Hero"/>
-</div>
+<p align="center">
+    <img width="500px" src="./assets/hyperion-hero.svg" alt="Hyperion Hero"/>
+</>
+
 
 # Installation
 
