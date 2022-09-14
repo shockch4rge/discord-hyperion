@@ -1,7 +1,7 @@
 import {
-    ButtonBuilder, ButtonInteraction, ButtonStyle, ChatInputCommandInteraction, ComponentType,
-    EmbedBuilder, MessageCollectorOptions, MessageComponentCollectorOptions, normalizeArray,
-    RestOrArray
+    ActionRowBuilder, ButtonBuilder, ButtonInteraction, ButtonStyle, ChatInputCommandInteraction,
+    ComponentType, EmbedBuilder, MessageCollectorOptions, MessageComponentCollectorOptions,
+    normalizeArray, RestOrArray
 } from "discord.js";
 
 import { EmbedFnOrBuilder } from "../structures/context";
@@ -21,9 +21,7 @@ export namespace PaginatedEmbedBuilder {
         }
 
         public async send() {
-            const message = await this.interaction.reply({
-                embeds: [this.data.pages[this.data.index]],
-            });
+            const message = await this.run();
 
             const collector = this.interaction.channel!.createMessageComponentCollector({
                 ...this.data.collectorOptions,
@@ -106,34 +104,39 @@ export namespace PaginatedEmbedBuilder {
         }
 
         public async next() {
-            const embed = this.data.pages[this.data.index];
-
-            if (this.isLastPage) {
-                return embed;
-            }
+            if (this.isLastPage) return;
 
             this.data.index++;
 
-            await this.interaction.reply({
-                embeds: [embed],
-            });
+            if (this.isLastPage) {
+                this.data.nextButton.setDisabled(true);
+                this.data.endButton.setDisabled(true);
+            }
 
-            return embed;
+            const nextPage = this.data.pages[this.data.index];
+
+            this.data.previousButton.setDisabled(false);
+            this.data.startButton.setDisabled(false);
+
+            await this.run(nextPage);
         }
 
         public async previous() {
-            const embed = this.data.pages[this.data.index];
-            if (this.isFirstPage) {
-                return embed;
-            }
+            if (this.isFirstPage) return;
 
             this.data.index--;
 
-            await this.interaction.reply({
-                embeds: [embed],
-            });
+            if (this.isFirstPage) {
+                this.data.previousButton.setDisabled(true);
+                this.data.startButton.setDisabled(true);
+            }
 
-            return this.data.pages[this.data.index];
+            const previousPage = this.data.pages[this.data.index];
+
+            this.data.nextButton.setDisabled(false);
+            this.data.endButton.setDisabled(false);
+
+            await this.run(previousPage);
         }
 
         public async end() {
@@ -141,17 +144,29 @@ export namespace PaginatedEmbedBuilder {
 
             this.data.index = this.data.pages.length - 1;
 
-            await this.interaction.reply({
-                embeds: [this.data.pages[this.data.index]],
-            });
+            const lastPage = this.data.pages[this.data.index];
+
+            this.data.nextButton.setDisabled(true);
+            this.data.endButton.setDisabled(true);
+            this.data.previousButton.setDisabled(false);
+            this.data.startButton.setDisabled(false);
+
+            await this.run(lastPage);
         }
 
         public async beginning() {
-            if (this.data.index === 0) return;
+            if (this.isFirstPage) return;
 
-            await this.interaction.reply({
-                embeds: [this.data.pages[this.data.index]],
-            });
+            this.data.index = 0;
+
+            const beginningPage = this.data.pages[this.data.index];
+
+            this.data.nextButton.setDisabled(false);
+            this.data.endButton.setDisabled(false);
+            this.data.previousButton.setDisabled(true);
+            this.data.startButton.setDisabled(true);
+
+            await this.run(beginningPage);
         }
 
         public hasPage(index: number) {
@@ -168,7 +183,9 @@ export namespace PaginatedEmbedBuilder {
             return this.data.index === this.data.pages.length - 1;
         }
 
-        private resolveOptions(options?: PaginatedInteractionEmbedOptions) {
+        private resolveOptions(
+            options?: PaginatedInteractionEmbedOptions
+        ): PaginatedInteractionEmbedData {
             const {
                 collectorOptions,
                 index = 0,
@@ -185,7 +202,7 @@ export namespace PaginatedEmbedBuilder {
                 index: index,
                 pages: pages.map(resolveEmbed),
                 collectorOptions: collectorOptions ?? {
-                    time: Time.seconds(15),
+                    time: Time.seconds(30),
                     dispose: true,
                 },
                 startButton: resolveButton(
@@ -230,6 +247,21 @@ export namespace PaginatedEmbedBuilder {
                 ),
             };
         }
+
+        private run(newPage?: EmbedBuilder) {
+            return this.interaction.editReply({
+                embeds: [newPage ?? this.data.pages[this.data.index]],
+                components: [
+                    new ActionRowBuilder<ButtonBuilder>().addComponents([
+                        this.data.startButton,
+                        this.data.previousButton,
+                        this.data.nextButton,
+                        this.data.endButton,
+                        this.data.searchButton,
+                    ]),
+                ],
+            });
+        }
     }
 }
 
@@ -238,6 +270,11 @@ export type PaginatedInteractionEmbedData = Required<
         PaginatedInteractionEmbedOptions,
         {
             pages: EmbedBuilder[];
+            startButton?: ButtonBuilder;
+            previousButton?: ButtonBuilder;
+            nextButton?: ButtonBuilder;
+            endButton?: ButtonBuilder;
+            searchButton?: ButtonBuilder;
             embedOnEnd: EmbedBuilder;
         }
     >
