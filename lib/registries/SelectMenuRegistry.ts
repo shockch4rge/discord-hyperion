@@ -18,7 +18,8 @@ export class SelectMenuRegistry extends Registry<SelectMenu> {
 
         if (routeParsing.type === "default") {
             folderPath = path.join(this.importPath, `./interactions/select-menus`);
-        } else {
+        }
+        else {
             const baseDir = routeParsing.directories.baseDir;
             const selectMenuDir = routeParsing.directories.selectMenus;
 

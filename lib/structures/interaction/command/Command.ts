@@ -1,18 +1,10 @@
 import {
-    ApplicationCommandType,
-    ChatInputCommandInteraction,
-    Collection,
-    ContextMenuCommandBuilder,
-    Message,
-    SlashCommandBuilder,
-    SlashCommandOptionsOnlyBuilder,
-    SlashCommandSubcommandBuilder,
+    ApplicationCommandType, ChatInputCommandInteraction, Collection, ContextMenuCommandBuilder,
+    Message, SlashCommandBuilder, SlashCommandOptionsOnlyBuilder, SlashCommandSubcommandBuilder
 } from "discord.js";
 
 import {
-    ContextMenuCommandContext,
-    HybridContextMenuCommandInteraction,
-    SlashCommandContext,
+    ContextMenuCommandContext, HybridContextMenuCommandInteraction, SlashCommandContext
 } from "../../context";
 import { GuardFactory } from "../../Guard";
 import { Subcommand } from "./Subcommand";
@@ -25,15 +17,17 @@ export abstract class Command {
     }
 
     public slashRun?(context: SlashCommandContext): Promise<void>;
+
     public messageRun?(message: Message): Promise<void>;
+
     public contextMenuRun?<I extends HybridContextMenuCommandInteraction>(
         context: ContextMenuCommandContext<I>
     ): Promise<void>;
 
     public isSlashCommand() {
         return (
-            (Reflect.has(this, "slashRun") && !this.hasSubcommands()) ||
-            (!Reflect.has(this, "slashRun") && this.hasSubcommands())
+            Reflect.has(this, "slashRun") && !this.hasSubcommands() ||
+            !Reflect.has(this, "slashRun") && this.hasSubcommands()
         );
     }
 
@@ -90,119 +84,119 @@ export abstract class Command {
 
     private addArg(builder: SlashCommandBuilder | SlashCommandSubcommandBuilder, arg: CommandArg) {
         switch (arg.type) {
-            case "string":
-                builder.addStringOption(option => {
-                    option.setName(arg.name);
-                    option.setDescription(arg.description);
-                    option.setRequired(arg.required ?? true);
-                    option.setAutocomplete(arg.autocomplete ?? true);
+        case "string":
+            builder.addStringOption(option => {
+                option.setName(arg.name);
+                option.setDescription(arg.description);
+                option.setRequired(arg.required ?? true);
+                option.setAutocomplete(arg.autocomplete ?? true);
 
-                    arg.minLength && option.setMinLength(arg.minLength);
-                    arg.maxLength && option.setMaxLength(arg.maxLength);
+                arg.minLength && option.setMinLength(arg.minLength);
+                arg.maxLength && option.setMaxLength(arg.maxLength);
 
-                    if (arg.choices) {
-                        for (const choice of arg.choices) {
-                            option.addChoices(choice);
-                        }
+                if (arg.choices) {
+                    for (const choice of arg.choices) {
+                        option.addChoices(choice);
                     }
+                }
 
-                    return option;
-                });
-                break;
-            case "number":
-                builder.addNumberOption(option => {
-                    option.setName(arg.name);
-                    option.setDescription(arg.description);
-                    option.setRequired(arg.required ?? true);
-                    option.setAutocomplete(arg.autocomplete ?? true);
+                return option;
+            });
+            break;
+        case "number":
+            builder.addNumberOption(option => {
+                option.setName(arg.name);
+                option.setDescription(arg.description);
+                option.setRequired(arg.required ?? true);
+                option.setAutocomplete(arg.autocomplete ?? true);
 
-                    arg.min && option.setMinValue(arg.min);
-                    arg.max && option.setMaxValue(arg.max);
+                arg.min && option.setMinValue(arg.min);
+                arg.max && option.setMaxValue(arg.max);
 
-                    if (arg.choices) {
-                        for (const choice of arg.choices) {
-                            option.addChoices(choice);
-                        }
+                if (arg.choices) {
+                    for (const choice of arg.choices) {
+                        option.addChoices(choice);
                     }
+                }
 
-                    return option;
-                });
-                break;
-            case "integer":
-                builder.addIntegerOption(option => {
-                    option.setName(arg.name);
-                    option.setDescription(arg.description);
-                    option.setRequired(arg.required ?? true);
-                    option.setAutocomplete(arg.autocomplete ?? true);
+                return option;
+            });
+            break;
+        case "integer":
+            builder.addIntegerOption(option => {
+                option.setName(arg.name);
+                option.setDescription(arg.description);
+                option.setRequired(arg.required ?? true);
+                option.setAutocomplete(arg.autocomplete ?? true);
 
-                    arg.min && option.setMinValue(arg.min);
-                    arg.max && option.setMaxValue(arg.max);
+                arg.min && option.setMinValue(arg.min);
+                arg.max && option.setMaxValue(arg.max);
 
-                    if (arg.choices) {
-                        for (const choice of arg.choices) {
-                            option.addChoices(choice);
-                        }
+                if (arg.choices) {
+                    for (const choice of arg.choices) {
+                        option.addChoices(choice);
                     }
+                }
 
-                    return option;
-                });
-                break;
-            case "boolean":
-                builder.addBooleanOption(option => {
-                    option.setName(arg.name);
-                    option.setDescription(arg.description);
-                    option.setRequired(arg.required ?? true);
+                return option;
+            });
+            break;
+        case "boolean":
+            builder.addBooleanOption(option => {
+                option.setName(arg.name);
+                option.setDescription(arg.description);
+                option.setRequired(arg.required ?? true);
 
-                    return option;
-                });
-                break;
-            case "mentionable":
-                builder.addMentionableOption(option => {
-                    option.setName(arg.name);
-                    option.setDescription(arg.description);
-                    option.setRequired(arg.required ?? true);
+                return option;
+            });
+            break;
+        case "mentionable":
+            builder.addMentionableOption(option => {
+                option.setName(arg.name);
+                option.setDescription(arg.description);
+                option.setRequired(arg.required ?? true);
 
-                    return option;
-                });
-                break;
-            case "user":
-                builder.addUserOption(option => {
-                    option.setName(arg.name);
-                    option.setDescription(arg.description);
-                    option.setRequired(arg.required ?? true);
+                return option;
+            });
+            break;
+        case "user":
+            builder.addUserOption(option => {
+                option.setName(arg.name);
+                option.setDescription(arg.description);
+                option.setRequired(arg.required ?? true);
 
-                    return option;
-                });
-                break;
-            case "channel":
-                builder.addChannelOption(option => {
-                    option.setName(arg.name);
-                    option.setDescription(arg.description);
-                    option.setRequired(arg.required ?? true);
+                return option;
+            });
+            break;
+        case "channel":
+            builder.addChannelOption(option => {
+                option.setName(arg.name);
+                option.setDescription(arg.description);
+                option.setRequired(arg.required ?? true);
 
-                    return option;
-                });
-                break;
-            case "role":
-                builder.addRoleOption(option => {
-                    option.setName(arg.name);
-                    option.setDescription(arg.description);
-                    option.setRequired(arg.required ?? true);
+                return option;
+            });
+            break;
+        case "role":
+            builder.addRoleOption(option => {
+                option.setName(arg.name);
+                option.setDescription(arg.description);
+                option.setRequired(arg.required ?? true);
 
-                    return option;
-                });
-                break;
-            case "attachment":
-                builder.addAttachmentOption(option => {
-                    option.setName(arg.name);
-                    option.setDescription(arg.description);
-                    option.setRequired(arg.required ?? true);
+                return option;
+            });
+            break;
+        case "attachment":
+            builder.addAttachmentOption(option => {
+                option.setName(arg.name);
+                option.setDescription(arg.description);
+                option.setRequired(arg.required ?? true);
 
-                    return option;
-                });
-                break;
-            default:
-                break;
+                return option;
+            });
+            break;
+        default:
+            break;
         }
 
         return builder;
@@ -217,7 +211,7 @@ export abstract class Command {
         const builder = new ContextMenuCommandBuilder();
 
         builder.setName(name);
-        builder.setDMPermission(channel === "guild" ? false : true);
+        builder.setDMPermission(channel !== "guild");
         builder.setType(
             type === "user" || type === "client"
                 ? ApplicationCommandType.User
@@ -237,7 +231,7 @@ export type CommandOptions = {
     guards?: GuardFactory[];
     ephemeral?: boolean;
     enableInDms?: boolean;
-    contextMenuType?: "user" | "message" | "client";
+    contextMenuType?: "client" | "message" | "user";
 };
 
 export type CommandWithSubcommandOptions = CommandOptions & {
@@ -246,15 +240,7 @@ export type CommandWithSubcommandOptions = CommandOptions & {
 
 export type CommandArg = BaseArgOptions &
     (
-        | StringArgOptions
-        | NumberArgOptions
-        | IntegerArgOptions
-        | BooleanArgOptions
-        | MentionableArgOptions
-        | UserArgOptions
-        | ChannelArgOptions
-        | RoleArgOptions
-        | AttachmentArgOptions
+        AttachmentArgOptions | BooleanArgOptions | ChannelArgOptions | IntegerArgOptions | MentionableArgOptions | NumberArgOptions | RoleArgOptions | StringArgOptions | UserArgOptions
     );
 
 export type BaseArgOptions = {
@@ -265,7 +251,7 @@ export type BaseArgOptions = {
 };
 
 export type ChoiceableArg<ValueType> = {
-    choices?: { name: string; value: ValueType }[];
+    choices?: Array<{ name: string; value: ValueType }>;
 };
 
 export type AutocompleteableArg = {
@@ -276,23 +262,17 @@ export type ArgType<T extends OptionType<keyof SlashCommandOptionsOnlyBuilder>> 
     type: Extract<T, T>;
 };
 
-export type StringArgOptions = ArgType<"string"> &
-    ChoiceableArg<string> &
-    AutocompleteableArg & {
+export type StringArgOptions = ArgType<"string"> & AutocompleteableArg & ChoiceableArg<string> & {
         minLength?: number;
         maxLength?: number;
     };
 
-export type NumberArgOptions = ArgType<"number"> &
-    ChoiceableArg<number> &
-    AutocompleteableArg & {
+export type NumberArgOptions = ArgType<"number"> & AutocompleteableArg & ChoiceableArg<number> & {
         min?: number;
         max?: number;
     };
 
-export type IntegerArgOptions = ArgType<"integer"> &
-    ChoiceableArg<number> &
-    AutocompleteableArg & {
+export type IntegerArgOptions = ArgType<"integer"> & AutocompleteableArg & ChoiceableArg<number> & {
         min?: number;
         max?: number;
     };
@@ -353,7 +333,7 @@ export class CommandArgResolver {
     }
 
     public subcommand(required?: true) {
-        if (required === undefined || required === true) {
+        if (required) {
             return this.interaction.options.getSubcommand();
         }
 

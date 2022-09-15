@@ -14,13 +14,9 @@ import { Registry } from "./Registry";
 export class CommandRegistry extends Registry<Command> {
     private async importSubcommand(command: Command, path: string) {
         const [Class] = Object.values(
-            (await import(path)) as Record<string, new (command: Command) => Subcommand>
+    		(await import(path)) as Record<string, new (command: Command) => Subcommand>
         );
-        const shortPath =
-            path
-                .match(/(?<=src).*/)?.[0]
-                .replaceAll(/\\/g, "/")
-                .replace(/^/, "....") ?? path;
+        const shortPath = path.match(/(?<=src).*/)?.[0].replaceAll(/\\/g, "/").replace(/^/, "....") ?? path;
 
         assert(
             isConstructor(Class),
@@ -91,7 +87,8 @@ export class CommandRegistry extends Registry<Command> {
 
         if (routeParsing.type === "default") {
             folderPath = path.join(this.importPath, `./interactions/commands`);
-        } else {
+        }
+        else {
             const baseDir = routeParsing.directories.baseDir;
             const commandDir = routeParsing.directories.commands;
 

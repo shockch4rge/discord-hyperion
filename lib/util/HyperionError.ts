@@ -17,6 +17,7 @@ export type HErrorArgs<K extends HErrorKey> = Parameters<HErrors[K]>;
 
 export class HyperionError<K extends HErrorKey = HErrorKey> extends Error {
     public constructor(error: (errors: HErrors) => HErrors[K], ...args: HErrorArgs<K>) {
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore until I figure out how to fix ...args' type
         super(chalk.red`${error(HyperionErrors)(...args)}`);
     }

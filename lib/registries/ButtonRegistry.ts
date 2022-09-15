@@ -18,7 +18,8 @@ export class ButtonRegistry extends Registry<Button> {
 
         if (routeParsing.type === "default") {
             folderPath = path.join(this.importPath, `./interactions/buttons`);
-        } else {
+        }
+        else {
             const baseDir = routeParsing.directories.baseDir;
             const buttonDir = routeParsing.directories.buttons;
 

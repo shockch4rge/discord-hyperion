@@ -1,7 +1,4 @@
-import {
-    ActionRowBuilder, AnyComponentBuilder, ChatInputCommandInteraction, Client, EmbedBuilder, Guild,
-    InteractionReplyOptions
-} from "discord.js";
+import { ActionRowBuilder, ChatInputCommandInteraction, EmbedBuilder, Guild } from "discord.js";
 
 import { HyperionClient } from "../..";
 import { CommandArgResolver } from "../interaction/command/Command";
