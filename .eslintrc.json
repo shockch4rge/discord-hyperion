@@ -1,0 +1,86 @@
+{
+    "env": {
+        "commonjs": true,
+        "es2021": true,
+        "node": true
+    },
+    "extends": [
+        "eslint:recommended",
+        "plugin:@typescript-eslint/recommended"
+    ],
+    "overrides": [
+    ],
+    "parser": "@typescript-eslint/parser",
+    "parserOptions": {
+        "ecmaVersion": "latest"
+    },
+    "plugins": [
+        "@typescript-eslint"
+    ],
+    "rules": {
+        "indent": ["error", "tab"],
+        "linebreak-style": ["error", "windows"],
+        "quotes": ["warn", "double", {
+            "allowTemplateLiterals": true
+        }],
+        "semi": ["error", "always"],
+        "default-case": ["warn"],
+        "default-case-last": ["warn"],
+        "guard-for-in": "error",
+        "new-cap": [
+            "warn", { 
+                "newIsCap": true, 
+                "capIsNew": true
+            }
+        ],
+        "@typescript-eslint/no-non-null-assertion": "off",
+        "no-promise-executor-return": "error",
+        "no-prototype-builtins": "off",
+        "no-array-constructor": "error",
+        "no-new-object": "error",
+        "no-else-return": [
+            "warn", {
+                "allowElseIf": false
+            }
+        ],
+        "no-eval": "error",
+        "no-multi-assign": "error",
+        "no-return-await": "error",
+        "no-return-assign": "error",
+        "no-useless-return": "error",
+        "no-sequences": "error",
+        "no-unneeded-ternary": "error",
+        "no-throw-literal": "error",
+        "no-useless-concat": "error",
+        "no-var": "error",
+        "prefer-arrow-callback": "warn",
+        "prefer-const": "error",
+        "prefer-object-has-own": "error",
+        "prefer-object-spread": "warn",
+        "prefer-promise-reject-errors": "error",
+        "prefer-regex-literals": "error",
+        "prefer-rest-params": "error",
+        "prefer-spread": "error",
+        "yoda": "error",
+        "arrow-parens": ["error", "as-needed"],
+        "brace-style": ["error", "stroustrup"],
+        "new-parens": "error",
+        "lines-between-class-members": ["error", "always"],
+        "newline-per-chained-call": [
+            "error", {
+                "ignoreChainWithDepth": 2
+            }
+        ],
+        "no-multi-spaces": "error",
+        "keyword-spacing": [
+            "error", {
+                "before": true,
+                "after": true
+            }
+        ],
+        "template-curly-spacing": ["error", "never"],
+        "space-in-parens": ["error", "never"],
+        "space-before-function-paren": ["error", "never"],
+        "wrap-iife": ["error", "inside"]
+    }
+}
