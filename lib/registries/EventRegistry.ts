@@ -4,7 +4,6 @@ import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import path from "node:path";
 import ora from "ora";
-import * as _ from "radash";
 
 import { HyperionClient } from "../HyperionClient";
 import { Event } from "../structures/Event";
@@ -45,7 +44,8 @@ export class EventRegistry extends Registry<Event> {
 
         if (routeParsing.type === "default") {
             folderPath = path.join(this.importPath, `./events`);
-        } else {
+        }
+        else {
             const baseDir = routeParsing.directories.baseDir;
             const eventDir = routeParsing.directories.events;
 
@@ -79,7 +79,8 @@ export class EventRegistry extends Registry<Event> {
 
             if (event.options.once) {
                 this.client.once(eventName, event.run);
-            } else {
+            }
+            else {
                 this.client.on(eventName, event.run);
             }
 

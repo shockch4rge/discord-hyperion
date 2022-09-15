@@ -7,4 +7,4 @@ export abstract class Subcommand<C extends Command = Command> {
     public abstract run(context: SlashCommandContext): Promise<void>;
 }
 
-export type SubcommandOptions = Omit<CommandOptions, "channel" | "enableInDms" | "contextMenuType">;
+export type SubcommandOptions = Omit<CommandOptions, "channel" | "contextMenuType" | "enableInDms">;

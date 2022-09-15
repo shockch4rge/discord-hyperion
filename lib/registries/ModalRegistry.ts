@@ -17,7 +17,8 @@ export class ModalRegistry extends Registry<Modal> {
 
         if (routeParsing.type === "default") {
             folderPath = path.join(this.importPath, `./interactions/modals`);
-        } else {
+        }
+        else {
             const baseDir = routeParsing.directories.baseDir;
             const modalDir = routeParsing.directories.modals;
 

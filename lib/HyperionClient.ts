@@ -5,7 +5,6 @@ import { Dirent } from "fs";
 import assert from "node:assert/strict";
 import ora from "ora";
 import path from "path";
-import * as _ from "radash";
 
 import {
     ButtonRegistry, CommandRegistry, EventRegistry, ModalRegistry, SelectMenuRegistry
@@ -108,7 +107,8 @@ export class HyperionClient extends Client {
 
                         try {
                             await subcommand.run(context);
-                        } catch (e) {
+                        }
+                        catch (e) {
                             const error = e as Error;
                             this.logger.warn(error.message);
                             this.logger.warn(
@@ -136,7 +136,8 @@ export class HyperionClient extends Client {
                                 content: guard.options.message,
                             });
                             return;
-                        } catch (e) {
+                        }
+                        catch (e) {
                             const error = e as Error;
                             this.logger.warn(error.message);
                             this.logger.warn(`'${command.options.name}' failed to run.`);
@@ -146,7 +147,8 @@ export class HyperionClient extends Client {
 
                     try {
                         await command.slashRun?.(context);
-                    } catch (e) {
+                    }
+                    catch (e) {
                         const error = e as Error;
                         this.logger.warn(error.message);
                         this.logger.warn(`'${command.options.name}' failed to run: ${error}`);
@@ -192,7 +194,8 @@ export class HyperionClient extends Client {
                             });
                             return;
                         }
-                    } catch (e) {
+                    }
+                    catch (e) {
                         const error = e as Error;
                         this.logger.warn(error.message);
                         this.logger.warn(`'${command.options.name}' failed to run.`);
@@ -202,7 +205,8 @@ export class HyperionClient extends Client {
 
                 try {
                     await command.contextMenuRun?.(context);
-                } catch (e) {
+                }
+                catch (e) {
                     const err = e as Error;
                     this.logger.warn(
                         `Button '${command.options.name}' failed to run: ${err.stack}`
@@ -239,7 +243,8 @@ export class HyperionClient extends Client {
                         }
 
                         await context.update(guard.options.message);
-                    } catch (e) {
+                    }
+                    catch (e) {
                         const error = e as Error;
                         this.logger.warn(error.message);
                         this.logger.warn(`'${button.options.id}' failed to run.`);
@@ -249,7 +254,8 @@ export class HyperionClient extends Client {
 
                 try {
                     await button.run(context);
-                } catch (e) {
+                }
+                catch (e) {
                     const err = e as Error;
                     this.logger.warn(`Button '${button.options.id}' failed to run: ${err.stack}`);
                     return;
@@ -283,7 +289,8 @@ export class HyperionClient extends Client {
                             content: guard.options.message,
                         });
                         return;
-                    } catch (e) {
+                    }
+                    catch (e) {
                         const error = e as Error;
                         this.logger.warn(error.message);
                         this.logger.warn(`'${selectMenu.options.id}' failed to run.`);
@@ -293,7 +300,8 @@ export class HyperionClient extends Client {
 
                 try {
                     await selectMenu.run(context);
-                } catch (e) {
+                }
+                catch (e) {
                     const err = e as Error;
                     this.logger.warn(
                         `Modal ${selectMenu.options.id} failed to submit: ${err.stack}`
@@ -317,21 +325,19 @@ export class HyperionClient extends Client {
 
                 try {
                     await modal.run(context);
-                } catch (e) {
+                }
+                catch (e) {
                     const error = e as Error;
                     this.logger.warn(error.message);
                     this.logger.warn(`Modal ${modal.options.id} failed to submit: ${error.stack}`);
-                    return;
+                    
                 }
             }
         });
     }
 }
 
-export type HyperionClientOptions = ClientOptions &
-    HyperionBaseClientOptions &
-    RouteParsingOptions &
-    LoggerOptions;
+export type HyperionClientOptions = ClientOptions & HyperionBaseClientOptions & LoggerOptions & RouteParsingOptions;
 
 export type HyperionBaseClientOptions = {
     name: string;
@@ -340,19 +346,20 @@ export type HyperionBaseClientOptions = {
     devGuildIds?: Snowflake[];
     cleanLeftoverCommands?: boolean;
     database?: unknown;
-    defaultPrefix: string | RegExp;
+    defaultPrefix: RegExp | string;
 };
 
 export type LoggerOptions =
-    | { useDefaultLogger: true }
-    | { useDefaultLogger: false; logger: (channelId?: string) => Logger };
+    { useDefaultLogger: false; logger: (channelId?: string) => Logger } | { useDefaultLogger: true };
 
 export type RouteParsingOptions = {
-    routeParsing: DefaultRouteParsing | CustomRouteParsing;
+    routeParsing: CustomRouteParsing | DefaultRouteParsing;
 };
+
 export type DefaultRouteParsing = {
     type: "default";
 };
+
 export type CustomRouteParsing = {
     type: "custom";
     filter?: (file: Dirent) => boolean;

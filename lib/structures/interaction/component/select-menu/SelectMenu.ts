@@ -1,7 +1,3 @@
-import { APIMessageComponentEmoji, SelectMenuBuilder } from "discord.js";
-
-import { SelectMenuOptionBuilder } from "@discordjs/builders";
-
 import { SelectMenuContext } from "../../../context/SelectMenuContext";
 import { GuardFactory } from "../../../Guard";
 

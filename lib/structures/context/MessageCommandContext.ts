@@ -1,4 +1,4 @@
-import { Client, EmbedBuilder, Guild, Message, ReplyMessageOptions } from "discord.js";
+import { EmbedBuilder, Guild, Message, ReplyMessageOptions } from "discord.js";
 
 import { HyperionClient } from "../..";
 import { Context } from "./Context";
@@ -13,13 +13,15 @@ export class MessageCommandContext<C extends HyperionClient = HyperionClient> ex
             return this.message.reply({
                 content: options,
             });
-        } else if (options instanceof EmbedBuilder) {
+        } 
+        
+        if (options instanceof EmbedBuilder) {
             return this.message.reply({
                 embeds: [options],
             });
-        } else {
-            return this.message.reply(options);
-        }
+        } 
+        return this.message.reply(options);
+        
     }
 
     public async followUp(options: MessageReplyOptions) {
@@ -27,14 +29,16 @@ export class MessageCommandContext<C extends HyperionClient = HyperionClient> ex
             return this.message.channel.send({
                 content: options,
             });
-        } else if (options instanceof EmbedBuilder) {
+        } 
+        
+        if (options instanceof EmbedBuilder) {
             return this.message.channel.send({
                 embeds: [options],
             });
-        } else {
-            return this.message.channel.send(options);
-        }
+        } 
+        return this.message.channel.send(options);
+        
     }
 }
 
-export type MessageReplyOptions = string | EmbedBuilder | ReplyMessageOptions;
+export type MessageReplyOptions = EmbedBuilder | ReplyMessageOptions | string;

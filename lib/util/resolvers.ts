@@ -31,4 +31,4 @@ export const resolveSelectMenu = (builder: ComponentFnOrBuilder<SelectMenuBuilde
     }
 };
 
-export type ComponentFnOrBuilder<T extends ComponentBuilder> = ((builder: T) => T) | T;
+export type ComponentFnOrBuilder<T extends ComponentBuilder> = T | ((builder: T) => T);
