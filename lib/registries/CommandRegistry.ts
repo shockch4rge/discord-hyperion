@@ -8,6 +8,7 @@ import * as _ from "radash";
 
 import { Command, Subcommand } from "../structures/interaction/command";
 import { HyperionError } from "../util/HyperionError";
+import { isConstructor } from "../util/types";
 import { Registry } from "./Registry";
 
 export class CommandRegistry extends Registry<Command> {
@@ -15,7 +16,16 @@ export class CommandRegistry extends Registry<Command> {
         const [Class] = Object.values(
             (await import(path)) as Record<string, new (command: Command) => Subcommand>
         );
-        assert(!_.isEmpty(Class), chalk.redBright`A subcommand class was not exported at ${path}`);
+        const shortPath =
+            path
+                .match(/(?<=src).*/)?.[0]
+                .replaceAll(/\\/g, "/")
+                .replace(/^/, "....") ?? path;
+
+        assert(
+            isConstructor(Class),
+            chalk.redBright`A subcommand class was not exported at ${chalk.cyanBright(shortPath)}`
+        );
         assert(
             Subcommand.isPrototypeOf(Class),
             chalk.redBright`Object at ${path} must extend the Subcommand class!`

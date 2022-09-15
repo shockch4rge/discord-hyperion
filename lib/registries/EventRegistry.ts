@@ -8,6 +8,7 @@ import * as _ from "radash";
 
 import { HyperionClient } from "../HyperionClient";
 import { Event } from "../structures/Event";
+import { isConstructor } from "../util/types";
 import { Registry } from "./Registry";
 
 export class EventRegistry extends Registry<Event> {
@@ -15,10 +16,20 @@ export class EventRegistry extends Registry<Event> {
         const [Class] = Object.values(
             (await import(path)) as Record<string, new (client: HyperionClient) => Event>
         );
-        assert(!_.isEmpty(Class), chalk.redBright`A subcommand class was not exported at ${path}`);
+
+        const shortPath =
+            path
+                .match(/(?<=src).*/)?.[0]
+                .replaceAll(/\\/g, "/")
+                .replace(/^/, "....") ?? path;
+
+        assert(
+            isConstructor(Class),
+            chalk.redBright`An event class was not exported at ${chalk.cyanBright(shortPath)}`
+        );
         assert(
             Event.isPrototypeOf(Class),
-            chalk.redBright`Object at ${path} must extend the Event class!`
+            chalk.redBright`Object at ${shortPath} must extend the Event class!`
         );
 
         return new Class(this.client);
