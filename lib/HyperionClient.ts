@@ -5,7 +5,7 @@ import { Dirent } from "fs";
 import assert from "node:assert/strict";
 import ora from "ora";
 import path from "path";
-import _ from "radash";
+import * as _ from "radash";
 
 import {
     ButtonRegistry, CommandRegistry, EventRegistry, ModalRegistry, SelectMenuRegistry
@@ -65,14 +65,15 @@ export class HyperionClient extends Client {
         await this.buttons.register();
         await this.selectMenus.register();
         await this.modals.register();
-        await this.registerEvents();
+        await this.events.register();
+        await this.setupDefaultEvents();
 
         const login = ora("Logging in...");
         await this.login(process.env.DISCORD_TOKEN);
         login.succeed(chalk.greenBright.bold`${this.options.name} is ready!`);
     }
 
-    private async registerEvents() {
+    private async setupDefaultEvents() {
         this.on("ready", () => {});
 
         this.on("interactionCreate", async interaction => {
@@ -106,11 +107,14 @@ export class HyperionClient extends Client {
                         }
 
                         try {
-                            await subcommand.slashRun(context);
+                            await subcommand.run(context);
                         } catch (e) {
+                            const error = e as Error;
+                            this.logger.warn(error.message);
                             this.logger.warn(
                                 `'${command.options.name}-${subcommand.options.name}' failed to run.`
                             );
+                            return;
                         }
 
                         return;
@@ -131,14 +135,22 @@ export class HyperionClient extends Client {
                             await interaction.editReply({
                                 content: guard.options.message,
                             });
-                        } catch (e) {}
+                            return;
+                        } catch (e) {
+                            const error = e as Error;
+                            this.logger.warn(error.message);
+                            this.logger.warn(`'${command.options.name}' failed to run.`);
+                            return;
+                        }
                     }
 
                     try {
                         await command.slashRun?.(context);
                     } catch (e) {
-                        console.log(e);
-                        this.logger.warn(`'${command.options.name}' failed to run: ${e}`);
+                        const error = e as Error;
+                        this.logger.warn(error.message);
+                        this.logger.warn(`'${command.options.name}' failed to run: ${error}`);
+                        return;
                     }
 
                     return;
@@ -174,8 +186,18 @@ export class HyperionClient extends Client {
                                 await guard.contextMenuFail?.(context);
                                 return;
                             }
+
+                            await interaction.editReply({
+                                content: guard.options.message,
+                            });
+                            return;
                         }
-                    } catch (e) {}
+                    } catch (e) {
+                        const error = e as Error;
+                        this.logger.warn(error.message);
+                        this.logger.warn(`'${command.options.name}' failed to run.`);
+                        return;
+                    }
                 }
 
                 try {
@@ -185,6 +207,7 @@ export class HyperionClient extends Client {
                     this.logger.warn(
                         `Button '${command.options.name}' failed to run: ${err.stack}`
                     );
+                    return;
                 }
             }
 
@@ -208,11 +231,19 @@ export class HyperionClient extends Client {
                                 await guard.buttonFail!(context);
                                 return;
                             }
+
+                            await interaction.editReply({
+                                content: guard.options.message,
+                            });
+                            return;
                         }
 
                         await context.update(guard.options.message);
                     } catch (e) {
-                        // TODO:
+                        const error = e as Error;
+                        this.logger.warn(error.message);
+                        this.logger.warn(`'${button.options.id}' failed to run.`);
+                        return;
                     }
                 }
 
@@ -221,6 +252,7 @@ export class HyperionClient extends Client {
                 } catch (e) {
                     const err = e as Error;
                     this.logger.warn(`Button '${button.options.id}' failed to run: ${err.stack}`);
+                    return;
                 }
 
                 return;
@@ -250,7 +282,13 @@ export class HyperionClient extends Client {
                         await interaction.editReply({
                             content: guard.options.message,
                         });
-                    } catch (e) {}
+                        return;
+                    } catch (e) {
+                        const error = e as Error;
+                        this.logger.warn(error.message);
+                        this.logger.warn(`'${selectMenu.options.id}' failed to run.`);
+                        return;
+                    }
                 }
 
                 try {
@@ -260,6 +298,7 @@ export class HyperionClient extends Client {
                     this.logger.warn(
                         `Modal ${selectMenu.options.id} failed to submit: ${err.stack}`
                     );
+                    return;
                 }
 
                 return;
@@ -278,7 +317,12 @@ export class HyperionClient extends Client {
 
                 try {
                     await modal.run(context);
-                } catch (e) {}
+                } catch (e) {
+                    const error = e as Error;
+                    this.logger.warn(error.message);
+                    this.logger.warn(`Modal ${modal.options.id} failed to submit: ${error.stack}`);
+                    return;
+                }
             }
         });
     }
