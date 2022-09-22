@@ -232,10 +232,6 @@
             "error",
             "never"
         ],
-        "space-before-function-paren": [
-            "error",
-            "never"
-        ],
         "wrap-iife": [
             "error",
             "inside"
