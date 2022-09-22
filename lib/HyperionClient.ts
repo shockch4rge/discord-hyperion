@@ -23,12 +23,12 @@ dotenv.config({
 export class HyperionClient extends Client {
     public readonly options: HyperionClientOptions;
     public readonly logger: Logger;
-    public readonly commands: CommandRegistry;
-    public readonly buttons: ButtonRegistry;
-    public readonly selectMenus: SelectMenuRegistry;
-    public readonly modals: ModalRegistry;
-    public readonly events: EventRegistry;
     private readonly database: unknown;
+    public commands!: CommandRegistry;
+    public buttons!: ButtonRegistry;
+    public selectMenus!: SelectMenuRegistry;
+    public modals!: ModalRegistry;
+    public events!: EventRegistry;
 
     public constructor(options: HyperionClientOptions) {
         super(options);
@@ -43,12 +43,6 @@ export class HyperionClient extends Client {
         );
 
         this.options = options;
-        this.commands = new CommandRegistry(this);
-        this.buttons = new ButtonRegistry(this);
-        this.selectMenus = new SelectMenuRegistry(this);
-        this.modals = new ModalRegistry(this);
-        this.events = new EventRegistry(this);
-
         this.database = options.database;
         this.logger = this.options.useDefaultLogger
             ? new DefaultLogger(undefined)
@@ -60,6 +54,12 @@ export class HyperionClient extends Client {
     }
 
     public async start() {
+        assert(this.commands, chalk.redBright`CommandRegistry not initialized.`);
+        assert(this.buttons, chalk.redBright`ButtonRegistry not initialized.`);
+        assert(this.selectMenus, chalk.redBright`SelectMenuRegistry not initialized.`);
+        assert(this.modals, chalk.redBright`ModalRegistry not initialized.`);
+        assert(this.events, chalk.redBright`EventRegistry not initialized.`);
+
         await this.commands.register();
         await this.buttons.register();
         await this.selectMenus.register();
@@ -73,7 +73,7 @@ export class HyperionClient extends Client {
     }
 
     private async setupDefaultEvents() {
-        this.on("ready", () => {});
+        this.on("ready", () => { });
 
         this.on("interactionCreate", async interaction => {
             if (interaction.isChatInputCommand()) {
@@ -330,14 +330,16 @@ export class HyperionClient extends Client {
                     const error = e as Error;
                     this.logger.warn(error.message);
                     this.logger.warn(`Modal ${modal.options.id} failed to submit: ${error.stack}`);
-                    
                 }
             }
         });
     }
 }
 
-export type HyperionClientOptions = ClientOptions & HyperionBaseClientOptions & LoggerOptions & RouteParsingOptions;
+export type HyperionClientOptions = ClientOptions &
+    HyperionBaseClientOptions &
+    LoggerOptions &
+    RouteParsingOptions;
 
 export type HyperionBaseClientOptions = {
     name: string;
@@ -350,7 +352,8 @@ export type HyperionBaseClientOptions = {
 };
 
 export type LoggerOptions =
-    { useDefaultLogger: false; logger: (channelId?: string) => Logger } | { useDefaultLogger: true };
+    | { useDefaultLogger: false; logger: (channelId?: string) => Logger }
+    | { useDefaultLogger: true };
 
 export type RouteParsingOptions = {
     routeParsing: CustomRouteParsing | DefaultRouteParsing;
