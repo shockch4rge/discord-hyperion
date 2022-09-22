@@ -1,4 +1,3 @@
-import { HyperionClient } from "../../../lib";
 import { MessageCommandContext, SlashCommandContext } from "../../../lib/structures/context";
 import { Guard } from "../../../lib/structures/Guard";
 
@@ -14,7 +13,7 @@ export class OwnerOnly extends Guard {
         return context.client.options.ownerIds.includes(context.interaction.user.id);
     }
 
-    public async onSlashFail(context: SlashCommandContext<HyperionClient>) {
+    public async onSlashFail(context: SlashCommandContext) {
         await context.reply({
             content: this.options.message,
         });
