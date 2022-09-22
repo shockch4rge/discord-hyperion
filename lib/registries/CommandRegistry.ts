@@ -8,20 +8,30 @@ import * as _ from "radash";
 
 import { Command, Subcommand } from "../structures/interaction/command";
 import { HyperionError } from "../util/HyperionError";
+import { isConstructor } from "../util/types";
 import { Registry } from "./Registry";
 
 export class CommandRegistry extends Registry<Command> {
     private async importSubcommand(command: Command, path: string) {
-        const [Class] = Object.values(
-            (await import(path)) as Record<string, new (command: Command) => Subcommand>
+        const [SubcommandClass] = Object.values(
+    		(await import(path)) as Record<string, new (command: Command) => Subcommand>
         );
-        assert(!_.isEmpty(Class), chalk.redBright`A subcommand class was not exported at ${path}`);
+        
+        const shortPath = path
+            .match(/(?<=src).*/)?.[0]
+            .replaceAll(/\\/g, "/")
+            .replace(/^/, "....") ?? path;
+
         assert(
-            Subcommand.isPrototypeOf(Class),
+            isConstructor(SubcommandClass),
+            chalk.redBright`A subcommand class was not exported at ${chalk.cyanBright(shortPath)}`
+        );
+        assert(
+            Subcommand.isPrototypeOf(SubcommandClass),
             chalk.redBright`Object at ${path} must extend the Subcommand class!`
         );
 
-        return new Class(command);
+        return new SubcommandClass(command);
     }
 
     public async register() {
@@ -81,7 +91,8 @@ export class CommandRegistry extends Registry<Command> {
 
         if (routeParsing.type === "default") {
             folderPath = path.join(this.importPath, `./interactions/commands`);
-        } else {
+        }
+        else {
             const baseDir = routeParsing.directories.baseDir;
             const commandDir = routeParsing.directories.commands;
 
@@ -146,7 +157,7 @@ export class CommandRegistry extends Registry<Command> {
                             .map(d =>
                                 this.importSubcommand(
                                     parentCommand,
-                                    path.join(folderPath!, file.name, "subcommands", d.name)
+                                    path.join(folderPath, file.name, "subcommands", d.name)
                                 )
                             )
                     )

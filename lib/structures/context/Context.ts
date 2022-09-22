@@ -1,6 +1,5 @@
 import {
-    AnyComponentBuilder, Client, EmbedBuilder, Guild, InteractionReplyOptions,
-    InteractionUpdateOptions
+    AnyComponentBuilder, EmbedBuilder, Guild, InteractionReplyOptions, InteractionUpdateOptions
 } from "discord.js";
 
 import { HyperionClient } from "../../HyperionClient";
@@ -15,14 +14,10 @@ export abstract class Context<C extends HyperionClient = HyperionClient> {
 }
 
 export type AltInteractionReplyOptions =
-    | string
-    | EmbedFnOrBuilder
-    | ModifiedInteractionReplyOptions;
+    EmbedFnOrBuilder | ModifiedInteractionReplyOptions | string;
 
 export type AltInteractionUpdateOptions =
-    | string
-    | EmbedFnOrBuilder
-    | ModifiedInteractionUpdateOptions;
+    EmbedFnOrBuilder | ModifiedInteractionUpdateOptions | string;
 
 export type ModifiedInteractionReplyOptions = Modify<
     InteractionReplyOptions,
@@ -40,4 +35,4 @@ export type ModifiedInteractionUpdateOptions = Modify<
     }
 >;
 
-export type EmbedFnOrBuilder = ((embed: EmbedBuilder) => EmbedBuilder) | EmbedBuilder;
+export type EmbedFnOrBuilder = EmbedBuilder | ((embed: EmbedBuilder) => EmbedBuilder);

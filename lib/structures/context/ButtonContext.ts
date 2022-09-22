@@ -1,7 +1,4 @@
-import {
-    ActionRowBuilder, ButtonInteraction, Client, EmbedBuilder, Guild, InteractionReplyOptions,
-    InteractionUpdateOptions
-} from "discord.js";
+import { ActionRowBuilder, ButtonInteraction, EmbedBuilder, Guild } from "discord.js";
 
 import { HyperionClient } from "../..";
 import { AltInteractionReplyOptions, AltInteractionUpdateOptions, Context } from "./Context";
@@ -15,7 +12,7 @@ export class ButtonContext<C extends HyperionClient = HyperionClient> extends Co
         super(client, guild);
     }
 
-    public update(options: AltInteractionUpdateOptions) {
+    public async update(options: AltInteractionUpdateOptions) {
         if (this.interaction.replied) {
             this.client.logger.warn("Interaction already replied to.");
             return;
@@ -46,7 +43,7 @@ export class ButtonContext<C extends HyperionClient = HyperionClient> extends Co
         });
     }
 
-    public reply(options: AltInteractionReplyOptions) {
+    public async reply(options: AltInteractionReplyOptions) {
         if (typeof options === "string") {
             return this.interaction.editReply({
                 content: options,

@@ -20,11 +20,11 @@ export class SelectMenuContext<C extends HyperionClient = HyperionClient> extend
         return this.interaction.values[0];
     }
 
-    public embed(builder: (embed: EmbedBuilder) => EmbedBuilder) {
+    public async embed(builder: (embed: EmbedBuilder) => EmbedBuilder) {
         return this.update(builder(new EmbedBuilder()));
     }
 
-    public update(options: AltInteractionUpdateOptions) {
+    public async update(options: AltInteractionUpdateOptions) {
         if (this.interaction.replied) {
             this.client.logger.warn("Interaction already replied to.");
             return;
@@ -55,7 +55,7 @@ export class SelectMenuContext<C extends HyperionClient = HyperionClient> extend
         });
     }
 
-    public reply(options: AltInteractionReplyOptions) {
+    public async reply(options: AltInteractionReplyOptions) {
         if (typeof options === "string") {
             return this.interaction.editReply({
                 content: options,

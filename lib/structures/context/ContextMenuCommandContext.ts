@@ -1,6 +1,6 @@
 import {
-    ActionRowBuilder, ContextMenuCommandInteraction, EmbedBuilder, Guild, Message,
-    MessageContextMenuCommandInteraction, User, UserContextMenuCommandInteraction
+    ActionRowBuilder, EmbedBuilder, Guild, MessageContextMenuCommandInteraction,
+    UserContextMenuCommandInteraction
 } from "discord.js";
 
 import { HyperionClient } from "../../HyperionClient";
@@ -29,7 +29,7 @@ export class ContextMenuCommandContext<
                     content: options,
                 });
             }
-
+            
             return this.interaction.reply({
                 content: options,
             });
@@ -96,5 +96,4 @@ export class ContextMenuCommandContext<
 }
 
 export type HybridContextMenuCommandInteraction =
-    | UserContextMenuCommandInteraction
-    | MessageContextMenuCommandInteraction;
+    MessageContextMenuCommandInteraction | UserContextMenuCommandInteraction;

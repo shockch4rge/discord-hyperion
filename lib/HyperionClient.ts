@@ -5,7 +5,6 @@ import { Dirent } from "fs";
 import assert from "node:assert/strict";
 import ora from "ora";
 import path from "path";
-import _ from "radash";
 
 import {
     ButtonRegistry, CommandRegistry, EventRegistry, ModalRegistry, SelectMenuRegistry
@@ -24,12 +23,12 @@ dotenv.config({
 export class HyperionClient extends Client {
     public readonly options: HyperionClientOptions;
     public readonly logger: Logger;
-    public readonly commands: CommandRegistry;
-    public readonly buttons: ButtonRegistry;
-    public readonly selectMenus: SelectMenuRegistry;
-    public readonly modals: ModalRegistry;
-    public readonly events: EventRegistry;
     private readonly database: unknown;
+    public commands!: CommandRegistry;
+    public buttons!: ButtonRegistry;
+    public selectMenus!: SelectMenuRegistry;
+    public modals!: ModalRegistry;
+    public events!: EventRegistry;
 
     public constructor(options: HyperionClientOptions) {
         super(options);
@@ -44,12 +43,6 @@ export class HyperionClient extends Client {
         );
 
         this.options = options;
-        this.commands = new CommandRegistry(this);
-        this.buttons = new ButtonRegistry(this);
-        this.selectMenus = new SelectMenuRegistry(this);
-        this.modals = new ModalRegistry(this);
-        this.events = new EventRegistry(this);
-
         this.database = options.database;
         this.logger = this.options.useDefaultLogger
             ? new DefaultLogger(undefined)
@@ -61,19 +54,26 @@ export class HyperionClient extends Client {
     }
 
     public async start() {
+        assert(this.commands, chalk.redBright`CommandRegistry not initialized.`);
+        assert(this.buttons, chalk.redBright`ButtonRegistry not initialized.`);
+        assert(this.selectMenus, chalk.redBright`SelectMenuRegistry not initialized.`);
+        assert(this.modals, chalk.redBright`ModalRegistry not initialized.`);
+        assert(this.events, chalk.redBright`EventRegistry not initialized.`);
+
         await this.commands.register();
         await this.buttons.register();
         await this.selectMenus.register();
         await this.modals.register();
-        await this.registerEvents();
+        await this.events.register();
+        await this.setupDefaultEvents();
 
         const login = ora("Logging in...");
         await this.login(process.env.DISCORD_TOKEN);
         login.succeed(chalk.greenBright.bold`${this.options.name} is ready!`);
     }
 
-    private async registerEvents() {
-        this.on("ready", () => {});
+    private async setupDefaultEvents() {
+        this.on("ready", () => { });
 
         this.on("interactionCreate", async interaction => {
             if (interaction.isChatInputCommand()) {
@@ -106,11 +106,15 @@ export class HyperionClient extends Client {
                         }
 
                         try {
-                            await subcommand.slashRun(context);
-                        } catch (e) {
+                            await subcommand.run(context);
+                        }
+                        catch (e) {
+                            const error = e as Error;
+                            this.logger.warn(error.message);
                             this.logger.warn(
                                 `'${command.options.name}-${subcommand.options.name}' failed to run.`
                             );
+                            return;
                         }
 
                         return;
@@ -131,14 +135,24 @@ export class HyperionClient extends Client {
                             await interaction.editReply({
                                 content: guard.options.message,
                             });
-                        } catch (e) {}
+                            return;
+                        }
+                        catch (e) {
+                            const error = e as Error;
+                            this.logger.warn(error.message);
+                            this.logger.warn(`'${command.options.name}' failed to run.`);
+                            return;
+                        }
                     }
 
                     try {
                         await command.slashRun?.(context);
-                    } catch (e) {
-                        console.log(e);
-                        this.logger.warn(`'${command.options.name}' failed to run: ${e}`);
+                    }
+                    catch (e) {
+                        const error = e as Error;
+                        this.logger.warn(error.message);
+                        this.logger.warn(`'${command.options.name}' failed to run: ${error}`);
+                        return;
                     }
 
                     return;
@@ -174,17 +188,30 @@ export class HyperionClient extends Client {
                                 await guard.contextMenuFail?.(context);
                                 return;
                             }
+
+                            await interaction.editReply({
+                                content: guard.options.message,
+                            });
+                            return;
                         }
-                    } catch (e) {}
+                    }
+                    catch (e) {
+                        const error = e as Error;
+                        this.logger.warn(error.message);
+                        this.logger.warn(`'${command.options.name}' failed to run.`);
+                        return;
+                    }
                 }
 
                 try {
                     await command.contextMenuRun?.(context);
-                } catch (e) {
+                }
+                catch (e) {
                     const err = e as Error;
                     this.logger.warn(
                         `Button '${command.options.name}' failed to run: ${err.stack}`
                     );
+                    return;
                 }
             }
 
@@ -208,19 +235,30 @@ export class HyperionClient extends Client {
                                 await guard.buttonFail!(context);
                                 return;
                             }
+
+                            await interaction.editReply({
+                                content: guard.options.message,
+                            });
+                            return;
                         }
 
                         await context.update(guard.options.message);
-                    } catch (e) {
-                        // TODO:
+                    }
+                    catch (e) {
+                        const error = e as Error;
+                        this.logger.warn(error.message);
+                        this.logger.warn(`'${button.options.id}' failed to run.`);
+                        return;
                     }
                 }
 
                 try {
                     await button.run(context);
-                } catch (e) {
+                }
+                catch (e) {
                     const err = e as Error;
                     this.logger.warn(`Button '${button.options.id}' failed to run: ${err.stack}`);
+                    return;
                 }
 
                 return;
@@ -250,16 +288,25 @@ export class HyperionClient extends Client {
                         await interaction.editReply({
                             content: guard.options.message,
                         });
-                    } catch (e) {}
+                        return;
+                    }
+                    catch (e) {
+                        const error = e as Error;
+                        this.logger.warn(error.message);
+                        this.logger.warn(`'${selectMenu.options.id}' failed to run.`);
+                        return;
+                    }
                 }
 
                 try {
                     await selectMenu.run(context);
-                } catch (e) {
+                }
+                catch (e) {
                     const err = e as Error;
                     this.logger.warn(
                         `Modal ${selectMenu.options.id} failed to submit: ${err.stack}`
                     );
+                    return;
                 }
 
                 return;
@@ -278,7 +325,12 @@ export class HyperionClient extends Client {
 
                 try {
                     await modal.run(context);
-                } catch (e) {}
+                }
+                catch (e) {
+                    const error = e as Error;
+                    this.logger.warn(error.message);
+                    this.logger.warn(`Modal ${modal.options.id} failed to submit: ${error.stack}`);
+                }
             }
         });
     }
@@ -286,8 +338,8 @@ export class HyperionClient extends Client {
 
 export type HyperionClientOptions = ClientOptions &
     HyperionBaseClientOptions &
-    RouteParsingOptions &
-    LoggerOptions;
+    LoggerOptions &
+    RouteParsingOptions;
 
 export type HyperionBaseClientOptions = {
     name: string;
@@ -296,19 +348,21 @@ export type HyperionBaseClientOptions = {
     devGuildIds?: Snowflake[];
     cleanLeftoverCommands?: boolean;
     database?: unknown;
-    defaultPrefix: string | RegExp;
+    defaultPrefix: RegExp | string;
 };
 
 export type LoggerOptions =
-    | { useDefaultLogger: true }
-    | { useDefaultLogger: false; logger: (channelId?: string) => Logger };
+    | { useDefaultLogger: false; logger: (channelId?: string) => Logger }
+    | { useDefaultLogger: true };
 
 export type RouteParsingOptions = {
-    routeParsing: DefaultRouteParsing | CustomRouteParsing;
+    routeParsing: CustomRouteParsing | DefaultRouteParsing;
 };
+
 export type DefaultRouteParsing = {
     type: "default";
 };
+
 export type CustomRouteParsing = {
     type: "custom";
     filter?: (file: Dirent) => boolean;

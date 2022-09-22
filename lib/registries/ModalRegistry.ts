@@ -17,19 +17,23 @@ export class ModalRegistry extends Registry<Modal> {
 
         if (routeParsing.type === "default") {
             folderPath = path.join(this.importPath, `./interactions/modals`);
-        } else {
-            folderPath = `${routeParsing.directories.baseDir}/${routeParsing.directories.modals}`;
+        }
+        else {
+            const baseDir = routeParsing.directories.baseDir;
+            const modalDir = routeParsing.directories.modals;
 
-            if (!folderPath) {
+            if (!baseDir || !modalDir) {
                 spinner.stopAndPersist({
                     text: chalk.yellow`No 'modals' directory specified. Skipping for now.`,
                     prefixText: "❓",
                 });
                 return;
             }
+
+            folderPath = `${baseDir}/${modalDir}`;
         }
 
-        const files = await fs.readdir(folderPath!, { withFileTypes: true });
+        const files = await fs.readdir(folderPath, { withFileTypes: true });
 
         for (const file of files) {
             if (!this.isValidFile(file)) continue;

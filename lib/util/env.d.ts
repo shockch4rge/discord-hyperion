@@ -1,4 +1,4 @@
-declare module NodeJS {
+declare namespace NodeJS {
     interface ProcessEnv {
         readonly NODE_ENV: "development" | "production" | "test";
         readonly DISCORD_APP_ID: string;

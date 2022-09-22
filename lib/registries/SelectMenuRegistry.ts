@@ -18,19 +18,23 @@ export class SelectMenuRegistry extends Registry<SelectMenu> {
 
         if (routeParsing.type === "default") {
             folderPath = path.join(this.importPath, `./interactions/select-menus`);
-        } else {
-            folderPath = `${routeParsing.directories.baseDir}/${routeParsing.directories.selectMenus}`;
+        }
+        else {
+            const baseDir = routeParsing.directories.baseDir;
+            const selectMenuDir = routeParsing.directories.selectMenus;
 
-            if (!folderPath) {
+            if (!baseDir || !selectMenuDir) {
                 spinner.stopAndPersist({
-                    text: chalk.yellow`No 'select-menus' directory specified. Skipping for now.`,
+                    text: chalk.yellow`No 'selectMenus' directory specified. Skipping for now.`,
                     prefixText: "❓",
                 });
                 return;
             }
+
+            folderPath = `${baseDir}/${selectMenuDir}`;
         }
 
-        const files = await fs.readdir(folderPath!, { withFileTypes: true });
+        const files = await fs.readdir(folderPath, { withFileTypes: true });
 
         for (const file of files) {
             if (!this.isValidFile(file)) continue;
