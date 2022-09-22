@@ -13,21 +13,25 @@ import { Registry } from "./Registry";
 
 export class CommandRegistry extends Registry<Command> {
     private async importSubcommand(command: Command, path: string) {
-        const [Class] = Object.values(
+        const [SubcommandClass] = Object.values(
     		(await import(path)) as Record<string, new (command: Command) => Subcommand>
         );
-        const shortPath = path.match(/(?<=src).*/)?.[0].replaceAll(/\\/g, "/").replace(/^/, "....") ?? path;
+        
+        const shortPath = path
+            .match(/(?<=src).*/)?.[0]
+            .replaceAll(/\\/g, "/")
+            .replace(/^/, "....") ?? path;
 
         assert(
-            isConstructor(Class),
+            isConstructor(SubcommandClass),
             chalk.redBright`A subcommand class was not exported at ${chalk.cyanBright(shortPath)}`
         );
         assert(
-            Subcommand.isPrototypeOf(Class),
+            Subcommand.isPrototypeOf(SubcommandClass),
             chalk.redBright`Object at ${path} must extend the Subcommand class!`
         );
 
-        return new Class(command);
+        return new SubcommandClass(command);
     }
 
     public async register() {

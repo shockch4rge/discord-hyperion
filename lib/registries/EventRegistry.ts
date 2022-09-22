@@ -12,26 +12,25 @@ import { Registry } from "./Registry";
 
 export class EventRegistry extends Registry<Event> {
     private async importEvent(path: string) {
-        const [Class] = Object.values(
+        const [EventClass] = Object.values(
             (await import(path)) as Record<string, new (client: HyperionClient) => Event>
         );
 
-        const shortPath =
-            path
-                .match(/(?<=src).*/)?.[0]
-                .replaceAll(/\\/g, "/")
-                .replace(/^/, "....") ?? path;
+        const shortPath = path
+            .match(/(?<=src).*/)?.[0]
+            .replaceAll(/\\/g, "/")
+            .replace(/^/, "....") ?? path;
 
         assert(
-            isConstructor(Class),
+            isConstructor(EventClass),
             chalk.redBright`An event class was not exported at ${chalk.cyanBright(shortPath)}`
         );
         assert(
-            Event.isPrototypeOf(Class),
+            Event.isPrototypeOf(EventClass),
             chalk.redBright`Object at ${shortPath} must extend the Event class!`
         );
 
-        return new Class(this.client);
+        return new EventClass(this.client);
     }
 
     public async register() {
@@ -69,6 +68,7 @@ export class EventRegistry extends Registry<Event> {
             );
 
             const event = await this.importEvent(path.join(folderPath, eventFile.name));
+
             const eventName =
                 event.options.name ?? (eventFile.name.slice(0, -3) as keyof ClientEvents);
 
@@ -84,8 +84,10 @@ export class EventRegistry extends Registry<Event> {
                 this.client.on(eventName, event.run);
             }
 
-            this.set(`${eventName}-${this}`, event);
+            this.set(`${eventName}-${this.client.options.name}`, event);
         }
+
+        spinner.succeed(chalk.green`Registered ${chalk.greenBright.bold(this.size)} events!`);
     }
 
     public deregister(key: string) {
