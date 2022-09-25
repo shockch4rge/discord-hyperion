@@ -4,42 +4,27 @@ import fs from "node:fs/promises";
 import ora from "ora";
 import path from "path";
 
+import { HyperionClient } from "../HyperionClient";
 import { Button } from "../structures/interaction/component";
 import { Registry } from "./";
 
 export class ButtonRegistry extends Registry<Button> {
+    public constructor(client: HyperionClient) {
+        super(client);
+    }
+
     public async register() {
         const spinner = ora({
             text: chalk.cyanBright`Registering buttons...`,
         }).start();
 
-        const routeParsing = this.client.options.routeParsing;
-        let folderPath: string | undefined;
-
-        if (routeParsing.type === "default") {
-            folderPath = path.join(this.importPath, `./interactions/buttons`);
-        }
-        else {
-            const baseDir = routeParsing.directories.baseDir;
-            const buttonDir = routeParsing.directories.buttons;
-
-            if (!baseDir || !buttonDir) {
-                spinner.stopAndPersist({
-                    text: chalk.yellow`No 'buttons' directory specified. Skipping for now.`,
-                    prefixText: "❓",
-                });
-                return;
-            }
-
-            folderPath = `${baseDir}/${buttonDir}`;
-        }
-
-        const files = await fs.readdir(folderPath, { withFileTypes: true });
+        const dirPath = path.join(this.importPath, `./interactions/buttons`);
+        const files = await fs.readdir(dirPath, { withFileTypes: true });
 
         for (const file of files) {
             if (!this.isValidFile(file)) continue;
 
-            const route = path.join(folderPath, file.name);
+            const route = path.join(dirPath, file.name);
             const button = await this.import<Button>(route);
 
             for (const GuardFactory of button.options.guards ?? []) {

@@ -13,33 +13,13 @@ export class SelectMenuRegistry extends Registry<SelectMenu> {
             text: chalk.cyanBright`Registering select menus...`,
         }).start();
 
-        const routeParsing = this.client.options.routeParsing;
-        let folderPath: string | undefined;
-
-        if (routeParsing.type === "default") {
-            folderPath = path.join(this.importPath, `./interactions/select-menus`);
-        }
-        else {
-            const baseDir = routeParsing.directories.baseDir;
-            const selectMenuDir = routeParsing.directories.selectMenus;
-
-            if (!baseDir || !selectMenuDir) {
-                spinner.stopAndPersist({
-                    text: chalk.yellow`No 'selectMenus' directory specified. Skipping for now.`,
-                    prefixText: "❓",
-                });
-                return;
-            }
-
-            folderPath = `${baseDir}/${selectMenuDir}`;
-        }
-
-        const files = await fs.readdir(folderPath, { withFileTypes: true });
+        const dirPath = path.join(this.importPath, `./interactions/select-menus`);
+        const files = await fs.readdir(dirPath, { withFileTypes: true });
 
         for (const file of files) {
             if (!this.isValidFile(file)) continue;
 
-            const route = path.join(folderPath, file.name);
+            const route = path.join(dirPath, file.name);
             const selectMenu = await this.import<SelectMenu>(route);
 
             for (const GuardFactory of selectMenu.options.guards ?? []) {
@@ -61,9 +41,7 @@ export class SelectMenuRegistry extends Registry<SelectMenu> {
         }
 
         spinner.succeed(
-            chalk.green`Registered ${chalk.greenBright.bold(this.size)} select ${
-                this.size !== 1 ? "menus" : "menu"
-            }!`
+            chalk.green`Registered ${chalk.greenBright.bold(this.size)} select ${this.size !== 1 ? "menus" : "menu"}!`
         );
     }
 }

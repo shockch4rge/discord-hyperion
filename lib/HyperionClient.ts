@@ -20,17 +20,16 @@ dotenv.config({
     path: path.join(process.cwd(), "./bot/.env"),
 });
 
-export class HyperionClient extends Client {
-    public readonly options: HyperionClientOptions;
+export class HyperionClient<DB = unknown> extends Client {
     public readonly logger: Logger;
-    private readonly database: unknown;
+    public readonly db: DB;
     public commands!: CommandRegistry;
     public buttons!: ButtonRegistry;
     public selectMenus!: SelectMenuRegistry;
     public modals!: ModalRegistry;
     public events!: EventRegistry;
 
-    public constructor(options: HyperionClientOptions) {
+    public constructor(public readonly options: HyperionClientOptions<DB>) {
         super(options);
 
         assert(
@@ -43,14 +42,10 @@ export class HyperionClient extends Client {
         );
 
         this.options = options;
-        this.database = options.database;
+        this.db = options.database as any;
         this.logger = this.options.useDefaultLogger
             ? new DefaultLogger(undefined)
             : this.options.logger(undefined);
-    }
-
-    public db<DB = unknown>() {
-        return this.database as DB;
     }
 
     public async start() {
@@ -166,14 +161,6 @@ export class HyperionClient extends Client {
 
                 if (!command) {
                     throw new HyperionError(e => e.CommandNotFound, interaction.commandName);
-                }
-
-                if (
-                    interaction.isUserContextMenuCommand() &&
-                    command.options.contextMenuType === "client" &&
-                    interaction.targetUser.id !== this.user!.id
-                ) {
-                    return;
                 }
 
                 const context = new ContextMenuCommandContext(interaction, this, interaction.guild);
@@ -336,42 +323,19 @@ export class HyperionClient extends Client {
     }
 }
 
-export type HyperionClientOptions = ClientOptions &
-    HyperionBaseClientOptions &
-    LoggerOptions &
-    RouteParsingOptions;
+export type HyperionClientOptions<DB = unknown> = ClientOptions &
+    HyperionBaseClientOptions<DB> &
+    LoggerOptions;
 
-export type HyperionBaseClientOptions = {
+export type HyperionBaseClientOptions<DB> = {
     name: string;
     description: string;
     ownerIds: Snowflake[];
     devGuildIds?: Snowflake[];
-    cleanLeftoverCommands?: boolean;
-    database?: unknown;
+    database?: DB;
     defaultPrefix: RegExp | string;
 };
 
 export type LoggerOptions =
     | { useDefaultLogger: false; logger: (channelId?: string) => Logger }
     | { useDefaultLogger: true };
-
-export type RouteParsingOptions = {
-    routeParsing: CustomRouteParsing | DefaultRouteParsing;
-};
-
-export type DefaultRouteParsing = {
-    type: "default";
-};
-
-export type CustomRouteParsing = {
-    type: "custom";
-    filter?: (file: Dirent) => boolean;
-    directories: {
-        baseDir?: string;
-        commands?: string;
-        buttons?: string;
-        selectMenus?: string;
-        modals?: string;
-        events?: string;
-    };
-};
