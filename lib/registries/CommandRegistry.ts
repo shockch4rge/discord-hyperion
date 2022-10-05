@@ -14,7 +14,8 @@ import { isConstructor } from "../util/types";
 import { Registry } from "./Registry";
 
 export class CommandRegistry extends Registry<Command> {
-    public readonly rest: REST = new REST({ version: "10" }).setToken(process.env.DISCORD_TOKEN!);
+    public readonly rest = new REST({ version: "10" }).setToken(process.env.DISCORD_TOKEN!);
+    private readonly messageCommands = new Collection<string, Command>();
 
     public constructor(client: HyperionClient, public readonly options: CommandRegistryOptions) {
         super(client);
@@ -51,7 +52,7 @@ export class CommandRegistry extends Registry<Command> {
         }
 
         const spinner = ora({
-            text: chalk.cyanBright`Registering commands...`,
+            text: chalk.cyanBright`Registering application commands...`,
         }).start();
 
         const dirPath = path.join(this.importPath, `./interactions/commands`);
@@ -102,7 +103,7 @@ export class CommandRegistry extends Registry<Command> {
                     { withFileTypes: true }
                 );
 
-                // import all subcommands in its folder and register each one into a collection
+                // import all subcommands in the folder and map into a collection
                 const subcommands = (
                     await Promise.all(subcommandDir
                         .filter(d => this.isValidFile(d))
@@ -116,7 +117,7 @@ export class CommandRegistry extends Registry<Command> {
                     new Collection<string, Subcommand>()
                 );
 
-                parentCommand.options.subcommands = subcommands;
+                Reflect.set(parentCommand.options, "subcommands", subcommands);
                 this.set(parentCommand.options.name, parentCommand);
                 continue;
             }
@@ -195,7 +196,9 @@ export class CommandRegistry extends Registry<Command> {
                 .bold`${cmCommands.size}`}${chalk.redBright`/10 context menu commands registered.`}`
         );
 
-        const [userCmCommands, messageCmCommands] = cmCommands.partition(c => c.options.contextMenuType === "user");
+        const [userCmCommands, messageCmCommands] = cmCommands
+            .filter(c => !!c.options.contextMenuType)
+            .partition(c => c.options.contextMenuType === "user");
 
         assert(
             userCmCommands.size <= 5,
@@ -245,12 +248,44 @@ export class CommandRegistry extends Registry<Command> {
             ],
         });
 
-        spinner.succeed(`Registered global commands!`);
+        spinner.succeed(`Registered global application commands!`);
+
+        this.registerMessageCommands();
+    }
+
+    public getMessageCommand(name: string) {
+        return this.messageCommands.get(name)
+            ?? this.messageCommands.find(cmd => !!cmd.options.aliases?.includes(name));
+    }
+
+    private registerMessageCommands() {
+        const spinner = ora({
+            text: chalk.cyanBright`Registering message commands...`,
+        }).start();
+
+        for (const [name, cmd] of this.filter(cmd => cmd.isMessageCommand())) {
+            Reflect.set(cmd, "builder", cmd.buildMessage());
+
+            this.messageCommands.set(name, cmd);
+
+            if (!cmd.options.aliases) continue;
+
+            for (const alias of cmd.options.aliases) {
+                if (this.messageCommands.has(alias)) {
+                    spinner.fail();
+                    throw new HyperionError(e => e.DuplicateMessageCommandAlias, name, alias);
+                }
+
+                this.messageCommands.set(alias, cmd);
+            }
+        }
+
+        spinner.succeed(`Registered ${this.messageCommands.size} message commands!`);
     }
 
     private async cleanGuildCommands(guildIds: string[]) {
         const spinner = ora({
-            text: chalk.cyanBright`Cleaning commands...`,
+            text: chalk.cyanBright`Cleaning guild application commands...`,
         });
 
         for (const guildId of guildIds) {

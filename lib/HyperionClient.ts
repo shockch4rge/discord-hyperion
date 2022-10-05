@@ -1,5 +1,6 @@
 import chalk from "chalk";
-import { Client, ClientOptions, Snowflake } from "discord.js";
+import { Client, ClientOptions, messageLink, Snowflake } from "discord.js";
+import { parseMessage } from "djs-message-commands";
 import dotenv from "dotenv";
 import { Dirent } from "fs";
 import assert from "node:assert/strict";
@@ -10,7 +11,8 @@ import {
     ButtonRegistry, CommandRegistry, EventRegistry, ModalRegistry, SelectMenuRegistry
 } from "./registries";
 import {
-    ButtonContext, ContextMenuCommandContext, ModalContext, SelectMenuContext, SlashCommandContext
+    ButtonContext, ContextMenuCommandContext, MessageCommandContext, ModalContext,
+    SelectMenuContext, SlashCommandContext
 } from "./structures/context";
 import { CommandArgResolver } from "./structures/interaction/command";
 import { HyperionError } from "./util/HyperionError";
@@ -62,7 +64,7 @@ export class HyperionClient<DB = unknown> extends Client {
         await this.events.register();
         await this.setupDefaultEvents();
 
-        const login = ora("Logging in...");
+        const login = ora("Logging in...").start();
         await this.login(process.env.DISCORD_TOKEN);
         login.succeed(chalk.greenBright.bold`${this.options.name} is ready!`);
     }
@@ -94,7 +96,7 @@ export class HyperionClient<DB = unknown> extends Client {
 
                     if (command.hasSubcommands()) {
                         const subcommandName = interaction.options.getSubcommand();
-                        const subcommand = command.options.subcommands!.get(subcommandName);
+                        const subcommand = command.options.subcommands.get(subcommandName);
 
                         if (!subcommand) {
                             throw new HyperionError(e => e.SubcommandNotFound, subcommandName);
@@ -141,7 +143,7 @@ export class HyperionClient<DB = unknown> extends Client {
                     }
 
                     try {
-                        await command.slashRun?.(context);
+                        await command.slashRun(context);
                     }
                     catch (e) {
                         const error = e as Error;
@@ -162,6 +164,8 @@ export class HyperionClient<DB = unknown> extends Client {
                 if (!command) {
                     throw new HyperionError(e => e.CommandNotFound, interaction.commandName);
                 }
+
+                if (!command.isContextMenuCommand()) return;
 
                 const context = new ContextMenuCommandContext(interaction, this, interaction.guild);
 
@@ -191,7 +195,7 @@ export class HyperionClient<DB = unknown> extends Client {
                 }
 
                 try {
-                    await command.contextMenuRun?.(context);
+                    await command.contextMenuRun(context);
                 }
                 catch (e) {
                     const err = e as Error;
@@ -320,6 +324,44 @@ export class HyperionClient<DB = unknown> extends Client {
                 }
             }
         });
+
+        this.on("messageCreate", async message => {
+            if (message.author.bot) return;
+
+            const { commandName, isPrefixed } = parseMessage({
+                content: message.content,
+                prefix: this.options.defaultPrefix,
+            });
+
+            console.log(commandName, isPrefixed);
+
+            if (!isPrefixed) return;
+
+            const command = this.commands.getMessageCommand(commandName);
+
+            if (!command) {
+                throw new HyperionError(e => e.CommandNotFound, commandName);
+            }
+
+            if (!command.isMessageCommand()) return;
+
+            const [errors, args] = command.builder.validate(message);
+
+            if (errors) {
+                // TODO:
+                console.log(errors);
+                return;
+            }
+
+            const context = new MessageCommandContext(this, message, args, message.guild);
+
+            try {
+                await command.messageRun(context);
+            }
+            catch (e) {
+                // TODO:
+            }
+        });
     }
 }
 
@@ -333,7 +375,7 @@ export type HyperionBaseClientOptions<DB> = {
     ownerIds: Snowflake[];
     devGuildIds?: Snowflake[];
     database?: DB;
-    defaultPrefix: RegExp | string;
+    defaultPrefix: string;
 };
 
 export type LoggerOptions =
