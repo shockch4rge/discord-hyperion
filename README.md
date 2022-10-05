@@ -21,7 +21,7 @@ Hyperion offers a myriad of features:
 
 -   [x] **Handy interaction handling**
 
-    The initial setup for interactions is tiring. Setting up each directory for reading/parsing, deploying your slash/context menu commands - Hyperion handles all that automagically! Or you can choose to opt out and supply your own configuration.
+    The initial setup for interactions is tiring. Setting up each directory for reading/parsing, deploying your slash/context menu commands - Hyperion handles all that automagically!
 
 -   [ ] **Database support**
 
@@ -47,7 +47,7 @@ Maybe. This was written as a solo project with a large amount of testing, but bu
 
 ## Why didn't you just use an existing framework, like Sapphire or Akairo?
 
-cuz coding is cool
+cuz coding is cool and i like to reinvent the wheel
 
 ## Why "Hyperion"?
 
