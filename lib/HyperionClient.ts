@@ -1,8 +1,7 @@
 import chalk from "chalk";
-import { Client, ClientOptions, messageLink, Snowflake } from "discord.js";
+import { Client, ClientOptions } from "discord.js";
 import { parseMessage } from "djs-message-commands";
 import dotenv from "dotenv";
-import { Dirent } from "fs";
 import assert from "node:assert/strict";
 import ora from "ora";
 import path from "path";
@@ -11,8 +10,8 @@ import {
     ButtonRegistry, CommandRegistry, EventRegistry, ModalRegistry, SelectMenuRegistry
 } from "./registries";
 import {
-    ButtonContext, ContextMenuCommandContext, MessageCommandContext, ModalContext,
-    SelectMenuContext, SlashCommandContext
+    BaseButtonContext, BaseContextMenuCommandContext, BaseMessageCommandContext, BaseModalContext,
+    BaseSelectMenuContext, BaseSlashCommandContext
 } from "./structures/context";
 import { CommandArgResolver } from "./structures/interaction/command";
 import { HyperionError } from "./util/HyperionError";
@@ -49,320 +48,6 @@ export class HyperionClient<DB = unknown> extends Client {
             ? new DefaultLogger(undefined)
             : this.options.logger(undefined);
     }
-
-    public async start() {
-        assert(this.commands, chalk.redBright`CommandRegistry not initialized.`);
-        assert(this.buttons, chalk.redBright`ButtonRegistry not initialized.`);
-        assert(this.selectMenus, chalk.redBright`SelectMenuRegistry not initialized.`);
-        assert(this.modals, chalk.redBright`ModalRegistry not initialized.`);
-        assert(this.events, chalk.redBright`EventRegistry not initialized.`);
-
-        await this.commands.register();
-        await this.buttons.register();
-        await this.selectMenus.register();
-        await this.modals.register();
-        await this.events.register();
-        await this.setupDefaultEvents();
-
-        const login = ora("Logging in...").start();
-        await this.login(process.env.DISCORD_TOKEN);
-        login.succeed(chalk.greenBright.bold`${this.options.name} is ready!`);
-    }
-
-    private async setupDefaultEvents() {
-        this.on("ready", () => { });
-
-        this.on("interactionCreate", async interaction => {
-            if (interaction.isChatInputCommand()) {
-                if (interaction.isCommand()) {
-                    const command = this.commands.get(interaction.commandName);
-
-                    if (!command) {
-                        throw new HyperionError(e => e.CommandNotFound, interaction.commandName);
-                    }
-
-                    if (!command.isSlashCommand()) return;
-
-                    await interaction.deferReply({
-                        ephemeral: command.options.ephemeral ?? true,
-                    });
-
-                    const context = new SlashCommandContext(
-                        this,
-                        interaction,
-                        new CommandArgResolver(interaction),
-                        interaction.guild
-                    );
-
-                    if (command.hasSubcommands()) {
-                        const subcommandName = interaction.options.getSubcommand();
-                        const subcommand = command.options.subcommands.get(subcommandName);
-
-                        if (!subcommand) {
-                            throw new HyperionError(e => e.SubcommandNotFound, subcommandName);
-                        }
-
-                        try {
-                            await subcommand.run(context);
-                        }
-                        catch (e) {
-                            const error = e as Error;
-                            this.logger.warn(error.message);
-                            this.logger.warn(
-                                `'${command.options.name}-${subcommand.options.name}' failed to run.`
-                            );
-                            return;
-                        }
-
-                        return;
-                    }
-
-                    for (const GuardFactory of command.options.guards ?? []) {
-                        const guard = new GuardFactory();
-
-                        try {
-                            if (guard.slashRun) {
-                                const passed = await guard.slashRun(context);
-                                if (!passed) {
-                                    await guard.onSlashFail!(context);
-                                    return;
-                                }
-                            }
-
-                            await interaction.editReply({
-                                content: guard.options.message,
-                            });
-                            return;
-                        }
-                        catch (e) {
-                            const error = e as Error;
-                            this.logger.warn(error.message);
-                            this.logger.warn(`'${command.options.name}' failed to run.`);
-                            return;
-                        }
-                    }
-
-                    try {
-                        await command.slashRun(context);
-                    }
-                    catch (e) {
-                        const error = e as Error;
-                        this.logger.warn(error.message);
-                        this.logger.warn(`'${command.options.name}' failed to run: ${error}`);
-                        return;
-                    }
-
-                    return;
-                }
-
-                return;
-            }
-
-            if (interaction.isContextMenuCommand()) {
-                const command = this.commands.get(interaction.commandName);
-
-                if (!command) {
-                    throw new HyperionError(e => e.CommandNotFound, interaction.commandName);
-                }
-
-                if (!command.isContextMenuCommand()) return;
-
-                const context = new ContextMenuCommandContext(interaction, this, interaction.guild);
-
-                for (const GuardFactory of command.options.guards ?? []) {
-                    const guard = new GuardFactory();
-
-                    try {
-                        if (guard.contextMenuRun) {
-                            const passed = await guard.contextMenuRun(context);
-                            if (!passed) {
-                                await guard.contextMenuFail?.(context);
-                                return;
-                            }
-
-                            await interaction.editReply({
-                                content: guard.options.message,
-                            });
-                            return;
-                        }
-                    }
-                    catch (e) {
-                        const error = e as Error;
-                        this.logger.warn(error.message);
-                        this.logger.warn(`'${command.options.name}' failed to run.`);
-                        return;
-                    }
-                }
-
-                try {
-                    await command.contextMenuRun(context);
-                }
-                catch (e) {
-                    const err = e as Error;
-                    this.logger.warn(
-                        `Button '${command.options.name}' failed to run: ${err.stack}`
-                    );
-                    return;
-                }
-            }
-
-            if (interaction.isButton()) {
-                await interaction.deferUpdate();
-                const button = this.buttons.get(interaction.customId);
-
-                if (!button) {
-                    throw new HyperionError(e => e.ButtonNotFound, interaction.customId);
-                }
-
-                const context = new ButtonContext(this, interaction, interaction.guild);
-
-                for (const GuardFactory of button.options.guards ?? []) {
-                    const guard = new GuardFactory();
-
-                    try {
-                        if (guard.buttonRun) {
-                            const passed = await guard.buttonRun(context);
-                            if (!passed) {
-                                await guard.buttonFail!(context);
-                                return;
-                            }
-
-                            await interaction.editReply({
-                                content: guard.options.message,
-                            });
-                            return;
-                        }
-
-                        await context.update(guard.options.message);
-                    }
-                    catch (e) {
-                        const error = e as Error;
-                        this.logger.warn(error.message);
-                        this.logger.warn(`'${button.options.id}' failed to run.`);
-                        return;
-                    }
-                }
-
-                try {
-                    await button.run(context);
-                }
-                catch (e) {
-                    const err = e as Error;
-                    this.logger.warn(`Button '${button.options.id}' failed to run: ${err.stack}`);
-                    return;
-                }
-
-                return;
-            }
-
-            if (interaction.isSelectMenu()) {
-                const selectMenu = this.selectMenus.get(interaction.customId);
-
-                if (!selectMenu) {
-                    throw new HyperionError(e => e.SelectMenuNotFound, interaction.customId);
-                }
-
-                const context = new SelectMenuContext(this, interaction, interaction.guild);
-
-                for (const GuardFactory of selectMenu.options.guards ?? []) {
-                    const guard = new GuardFactory();
-
-                    try {
-                        if (guard.selectMenuRun) {
-                            const passed = await guard.selectMenuRun(context);
-                            if (!passed) {
-                                await guard.selectMenuFail!(context);
-                                return;
-                            }
-                        }
-
-                        await interaction.editReply({
-                            content: guard.options.message,
-                        });
-                        return;
-                    }
-                    catch (e) {
-                        const error = e as Error;
-                        this.logger.warn(error.message);
-                        this.logger.warn(`'${selectMenu.options.id}' failed to run.`);
-                        return;
-                    }
-                }
-
-                try {
-                    await selectMenu.run(context);
-                }
-                catch (e) {
-                    const err = e as Error;
-                    this.logger.warn(
-                        `Modal ${selectMenu.options.id} failed to submit: ${err.stack}`
-                    );
-                    return;
-                }
-
-                return;
-            }
-
-            if (interaction.isModalSubmit()) {
-                if (!interaction.isFromMessage()) return;
-
-                const modal = this.modals.get(interaction.customId);
-
-                if (!modal) {
-                    throw new HyperionError(e => e.ModalNotFound, interaction.customId);
-                }
-
-                const context = new ModalContext(interaction, this, interaction.guild);
-
-                try {
-                    await modal.run(context);
-                }
-                catch (e) {
-                    const error = e as Error;
-                    this.logger.warn(error.message);
-                    this.logger.warn(`Modal ${modal.options.id} failed to submit: ${error.stack}`);
-                }
-            }
-        });
-
-        this.on("messageCreate", async message => {
-            if (message.author.bot) return;
-
-            const { commandName, isPrefixed } = parseMessage({
-                content: message.content,
-                prefix: this.options.defaultPrefix,
-            });
-
-            console.log(commandName, isPrefixed);
-
-            if (!isPrefixed) return;
-
-            const command = this.commands.getMessageCommand(commandName);
-
-            if (!command) {
-                throw new HyperionError(e => e.CommandNotFound, commandName);
-            }
-
-            if (!command.isMessageCommand()) return;
-
-            const [errors, args] = command.builder.validate(message);
-
-            if (errors) {
-                // TODO:
-                console.log(errors);
-                return;
-            }
-
-            const context = new MessageCommandContext(this, message, args, message.guild);
-
-            try {
-                await command.messageRun(context);
-            }
-            catch (e) {
-                // TODO:
-            }
-        });
-    }
 }
 
 export type HyperionClientOptions<DB = unknown> = ClientOptions &
@@ -372,10 +57,16 @@ export type HyperionClientOptions<DB = unknown> = ClientOptions &
 export type HyperionBaseClientOptions<DB> = {
     name: string;
     description: string;
-    ownerIds: Snowflake[];
-    devGuildIds?: Snowflake[];
+    ownerIds: string[];
+    devGuildIds?: string[];
     database?: DB;
     defaultPrefix: string;
+    SlashCommandContext: new (...args: any[]) => BaseSlashCommandContext;
+    ContextMenuCommandContext: new (...args: any[]) => BaseContextMenuCommandContext;
+    ButtonContext: new (...args: any[]) => BaseButtonContext;
+    SelectMenuContext: new (...args: any[]) => BaseSelectMenuContext;
+    ModalContext: new (...args: any[]) => BaseModalContext;
+    MessageCommandContext: new (...args: any[]) => BaseMessageCommandContext;
 };
 
 export type LoggerOptions =

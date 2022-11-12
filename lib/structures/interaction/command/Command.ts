@@ -1,13 +1,12 @@
 import {
     ApplicationCommandType, ChatInputCommandInteraction, Collection, ContextMenuCommandBuilder,
-    Message, SlashCommandBuilder, SlashCommandOptionsOnlyBuilder, SlashCommandSubcommandBuilder
+    Permissions, SlashCommandBuilder, SlashCommandOptionsOnlyBuilder, SlashCommandSubcommandBuilder
 } from "discord.js";
 import { MessageCommandBuilder } from "djs-message-commands";
 
 import { Modify } from "../../../util/types";
 import {
-    ContextMenuCommandContext, HybridContextMenuCommandInteraction, MessageCommandContext,
-    SlashCommandContext
+    BaseContextMenuCommandContext, BaseMessageCommandContext, BaseSlashCommandContext
 } from "../../context";
 import { GuardFactory } from "../../Guard";
 import { Subcommand } from "./Subcommand";
@@ -19,13 +18,11 @@ export abstract class Command {
         this.options = options;
     }
 
-    public slashRun?(context: SlashCommandContext): Promise<void>;
+    public slashRun?(context: BaseSlashCommandContext): Promise<void>;
 
-    public messageRun?(context: MessageCommandContext): Promise<void>;
+    public messageRun?(context: BaseMessageCommandContext): Promise<void>;
 
-    public contextMenuRun?<I extends HybridContextMenuCommandInteraction>(
-        context: ContextMenuCommandContext<I>
-    ): Promise<void>;
+    public contextMenuRun?(context: BaseContextMenuCommandContext): Promise<void>;
 
     public isSlashCommand(): this is this & { slashRun: NonNullable<typeof Command.prototype.slashRun> } {
         // parent commands of subcommands don't need to have `slashRun` defined
@@ -53,13 +50,14 @@ export abstract class Command {
     }
 
     public buildSlash() {
-        const { name, description, args = [], enableInDms = false, subcommands } = this.options;
+        const { name, description, args = [], enableInDms = false, defaultMemberPermissions, subcommands } = this.options;
 
         const builder = new SlashCommandBuilder();
 
         builder.setName(name);
         builder.setDescription(description);
         builder.setDMPermission(enableInDms);
+        builder.setDefaultMemberPermissions(defaultMemberPermissions)
 
         if (subcommands) {
             for (const [, subcommand] of subcommands) {
@@ -337,6 +335,7 @@ export type CommandOptions = Readonly<{
     guards?: GuardFactory[];
     ephemeral?: boolean;
     enableInDms?: boolean;
+    defaultMemberPermissions?: Permissions | bigint | number | null | undefined;
     contextMenuType?: "message" | "user";
 }>;
 

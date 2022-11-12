@@ -9,7 +9,7 @@ import { ComponentFnOrBuilder, resolveButton, resolveEmbed } from "./resolvers";
 import { Time } from "./Time";
 import { Modify } from "./types";
 
-export class Interaction<I extends ChatInputCommandInteraction> {
+class Interaction<I extends ChatInputCommandInteraction> {
     public readonly data: PaginatedInteractionEmbedData;
 
     public constructor(
