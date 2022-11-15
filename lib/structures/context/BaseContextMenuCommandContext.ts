@@ -1,17 +1,22 @@
-import { ActionRowBuilder, ChatInputCommandInteraction, EmbedBuilder, Guild } from "discord.js";
+import {
+    ActionRowBuilder, MessageContextMenuCommandInteraction, UserContextMenuCommandInteraction
+} from "discord.js";
 
-import { HyperionClient } from "../..";
-import { CommandArgResolver } from "../interaction/command/Command";
-import { AltInteractionReplyOptions, Context } from "./Context";
+import { HyperionClient } from "../../HyperionClient";
+import { resolveEmbed } from "../../util/resolvers";
+import { AltInteractionReplyOptions, BaseContext } from "./BaseContext";
 
-export class SlashCommandContext<C extends HyperionClient = HyperionClient> extends Context<C> {
-    public constructor(
-        client: C,
-        public readonly interaction: ChatInputCommandInteraction,
-        public readonly args: CommandArgResolver,
-        guild: Guild | null
-    ) {
-        super(client, guild);
+export class BaseContextMenuCommandContext<C extends HyperionClient = HyperionClient> extends BaseContext<C> {
+    public constructor(client: C, public readonly interaction: HybridContextMenuCommandInteraction) {
+        super(client, interaction.guild);
+    }
+
+    public target() {
+        if (this.interaction.isUserContextMenuCommand()) {
+            return this.interaction.targetUser;
+        }
+
+        return this.interaction.targetMessage;
     }
 
     public async reply(options: AltInteractionReplyOptions) {
@@ -28,7 +33,7 @@ export class SlashCommandContext<C extends HyperionClient = HyperionClient> exte
         }
 
         if (this.isEmbedBuildable(options)) {
-            const embed = options instanceof EmbedBuilder ? options : options(new EmbedBuilder());
+            const embed = resolveEmbed(options);
 
             if (this.interaction.replied) {
                 return this.interaction.editReply({
@@ -43,22 +48,11 @@ export class SlashCommandContext<C extends HyperionClient = HyperionClient> exte
 
         return this.interaction.editReply({
             ...options,
-            embeds: options.embeds?.map(builder => {
-                return builder instanceof EmbedBuilder ? builder : builder(new EmbedBuilder());
-            }),
+            embeds: options.embeds?.map(resolveEmbed),
             components: options.components?.map(components =>
-                // leave as any as our API abstracts ActionRow anyway
                 new ActionRowBuilder<any>().addComponents(components)
             ),
         });
-    }
-
-    public async embedReply(builder: (embed: EmbedBuilder) => EmbedBuilder) {
-        return this.reply(builder(new EmbedBuilder()));
-    }
-
-    public async embedFollowUp(builder: (embed: EmbedBuilder) => EmbedBuilder) {
-        return this.followUp(builder(new EmbedBuilder()));
     }
 
     public async followUp(options: AltInteractionReplyOptions) {
@@ -69,21 +63,19 @@ export class SlashCommandContext<C extends HyperionClient = HyperionClient> exte
         }
 
         if (this.isEmbedBuildable(options)) {
-            const embed = options instanceof EmbedBuilder ? options : options(new EmbedBuilder());
-
             return this.interaction.followUp({
-                embeds: [embed],
+                embeds: [resolveEmbed(options)],
             });
         }
 
         return this.interaction.followUp({
             ...options,
-            embeds: options.embeds?.map(builder =>
-                builder instanceof EmbedBuilder ? builder : builder(new EmbedBuilder())
-            ),
+            embeds: options.embeds?.map(resolveEmbed),
             components: options.components?.map(components =>
                 new ActionRowBuilder<any>().addComponents(components)
             ),
         });
     }
 }
+
+export type HybridContextMenuCommandInteraction = MessageContextMenuCommandInteraction | UserContextMenuCommandInteraction;

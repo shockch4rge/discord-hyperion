@@ -3,6 +3,7 @@
         "target": "esnext",
         "allowSyntheticDefaultImports": true,
         "forceConsistentCasingInFileNames": true,
+        "declaration": true,
         "isolatedModules": false,
         "module": "commonjs",
         "moduleResolution": "node",
@@ -29,6 +30,8 @@
         "outDir": "dist"
     },
     "exclude": [
-        "**/*.test.*"
+        "**/*.test.*",
+        "**/*.spec.*",
+        "./bot/**"
     ]
 }

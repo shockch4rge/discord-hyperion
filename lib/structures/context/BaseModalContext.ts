@@ -1,17 +1,15 @@
-import {
-    ActionRowBuilder, ComponentType, EmbedBuilder, Guild, ModalMessageModalSubmitInteraction
-} from "discord.js";
+import { ActionRowBuilder, ComponentType, ModalMessageModalSubmitInteraction } from "discord.js";
 
 import { HyperionClient } from "../../HyperionClient";
-import { AltInteractionUpdateOptions, Context } from "./Context";
+import { resolveEmbed } from "../../util/resolvers";
+import { AltInteractionUpdateOptions, BaseContext } from "./BaseContext";
 
-export class ModalContext<C extends HyperionClient = HyperionClient> extends Context<C> {
+export class BaseModalContext<C extends HyperionClient = HyperionClient> extends BaseContext<C> {
     public constructor(
-        public readonly interaction: ModalMessageModalSubmitInteraction,
         client: C,
-        guild: Guild | null
+        public readonly interaction: ModalMessageModalSubmitInteraction,
     ) {
-        super(client, guild);
+        super(client, interaction.guild);
     }
 
     public field(fieldId: string, type?: ComponentType) {
@@ -35,7 +33,7 @@ export class ModalContext<C extends HyperionClient = HyperionClient> extends Con
         }
 
         if (this.isEmbedBuildable(options)) {
-            const embed = options instanceof EmbedBuilder ? options : options(new EmbedBuilder());
+            const embed = resolveEmbed(options);
 
             return this.interaction.update({
                 embeds: [embed],
@@ -44,9 +42,7 @@ export class ModalContext<C extends HyperionClient = HyperionClient> extends Con
 
         return this.interaction.update({
             ...options,
-            embeds: options.embeds?.map(builder =>
-                builder instanceof EmbedBuilder ? builder : builder(new EmbedBuilder())
-            ),
+            embeds: options.embeds?.map(resolveEmbed),
             components: options.components?.map(components =>
                 // leave as any as our API abstracts ActionRow anyway
                 new ActionRowBuilder<any>().addComponents(components)

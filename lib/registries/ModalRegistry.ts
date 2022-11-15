@@ -12,42 +12,20 @@ export class ModalRegistry extends Registry<Modal> {
             text: chalk.cyanBright`Registering modals...`,
         }).start();
 
-        const routeParsing = this.client.options.routeParsing;
-        let folderPath: string | undefined;
-
-        if (routeParsing.type === "default") {
-            folderPath = path.join(this.importPath, `./interactions/modals`);
-        }
-        else {
-            const baseDir = routeParsing.directories.baseDir;
-            const modalDir = routeParsing.directories.modals;
-
-            if (!baseDir || !modalDir) {
-                spinner.stopAndPersist({
-                    text: chalk.yellow`No 'modals' directory specified. Skipping for now.`,
-                    prefixText: "❓",
-                });
-                return;
-            }
-
-            folderPath = `${baseDir}/${modalDir}`;
-        }
-
-        const files = await fs.readdir(folderPath, { withFileTypes: true });
+        const dirPath = path.join(this.importPath, `./interactions/modals`);
+        const files = await fs.readdir(dirPath, { withFileTypes: true });
 
         for (const file of files) {
             if (!this.isValidFile(file)) continue;
 
-            const route = path.join(folderPath, file.name);
+            const route = path.join(dirPath, file.name);
             const modal = await this.import<Modal>(route);
 
             this.set(modal.options.id, modal);
         }
 
         spinner.succeed(
-            chalk.green`Registered ${chalk.greenBright.bold(this.size)} ${
-                this.size !== 1 ? "modals" : "modal"
-            }!`
+            chalk.green`Registered ${chalk.greenBright.bold(this.size)} ${this.size !== 1 ? "modals" : "modal"}!`
         );
     }
 }

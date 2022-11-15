@@ -38,28 +38,8 @@ export class EventRegistry extends Registry<Event> {
             text: chalk.cyanBright`Registering events...`,
         }).start();
 
-        const routeParsing = this.client.options.routeParsing;
-        let folderPath: string;
-
-        if (routeParsing.type === "default") {
-            folderPath = path.join(this.importPath, `./events`);
-        }
-        else {
-            const baseDir = routeParsing.directories.baseDir;
-            const eventDir = routeParsing.directories.events;
-
-            if (!baseDir || !eventDir) {
-                spinner.stopAndPersist({
-                    text: chalk.yellow`No 'events' directory specified. Skipping for now.`,
-                    prefixText: "❓",
-                });
-                return;
-            }
-
-            folderPath = `${baseDir}/${eventDir}`;
-        }
-
-        const eventFolder = await fs.readdir(folderPath, { withFileTypes: true });
+        const dirPath = path.join(this.importPath, `./events`);
+        const eventFolder = await fs.readdir(dirPath, { withFileTypes: true });
 
         for (const eventFile of eventFolder) {
             assert(
@@ -67,8 +47,7 @@ export class EventRegistry extends Registry<Event> {
                 `Invalid file found in events folder: ${eventFile.name}`
             );
 
-            const event = await this.importEvent(path.join(folderPath, eventFile.name));
-
+            const event = await this.importEvent(path.join(dirPath, eventFile.name));
             const eventName =
                 event.options.name ?? (eventFile.name.slice(0, -3) as keyof ClientEvents);
 
@@ -92,9 +71,9 @@ export class EventRegistry extends Registry<Event> {
 
     public deregister(key: string) {
         const event = this.get(key);
-        if (!event) return;
+        if (!event) return false;
 
         this.client.off(event.options.name!, event.run);
-        this.delete(key);
+        return this.delete(key);
     }
 }

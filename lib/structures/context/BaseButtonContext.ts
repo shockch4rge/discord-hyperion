@@ -1,21 +1,22 @@
-import { ActionRowBuilder, ButtonInteraction, EmbedBuilder, Guild } from "discord.js";
+import { ActionRowBuilder, ButtonInteraction } from "discord.js";
 
 import { HyperionClient } from "../..";
-import { AltInteractionReplyOptions, AltInteractionUpdateOptions, Context } from "./Context";
+import { resolveEmbed } from "../../util/resolvers";
+import {
+    AltInteractionReplyOptions, AltInteractionUpdateOptions, BaseContext
+} from "./BaseContext";
 
-export class ButtonContext<C extends HyperionClient = HyperionClient> extends Context<C> {
+export class BaseButtonContext<C extends HyperionClient = HyperionClient> extends BaseContext<C> {
     public constructor(
         client: C,
         public readonly interaction: ButtonInteraction,
-        guild: Guild | null
     ) {
-        super(client, guild);
+        super(client, interaction.guild);
     }
 
     public async update(options: AltInteractionUpdateOptions) {
         if (this.interaction.replied) {
-            this.client.logger.warn("Interaction already replied to.");
-            return;
+            this.client.logger.error("Interaction already replied to.");
         }
 
         if (typeof options === "string") {
@@ -25,7 +26,7 @@ export class ButtonContext<C extends HyperionClient = HyperionClient> extends Co
         }
 
         if (this.isEmbedBuildable(options)) {
-            const embed = options instanceof EmbedBuilder ? options : options(new EmbedBuilder());
+            const embed = resolveEmbed(options);
 
             return this.interaction.update({
                 embeds: [embed],
@@ -34,9 +35,7 @@ export class ButtonContext<C extends HyperionClient = HyperionClient> extends Co
 
         return this.interaction.update({
             ...options,
-            embeds: options.embeds?.map(builder =>
-                builder instanceof EmbedBuilder ? builder : builder(new EmbedBuilder())
-            ),
+            embeds: options.embeds?.map(resolveEmbed),
             components: options.components?.map(components =>
                 new ActionRowBuilder<any>().addComponents(components)
             ),
@@ -51,7 +50,7 @@ export class ButtonContext<C extends HyperionClient = HyperionClient> extends Co
         }
 
         if (this.isEmbedBuildable(options)) {
-            const embed = options instanceof EmbedBuilder ? options : options(new EmbedBuilder());
+            const embed = resolveEmbed(options);
 
             return this.interaction.editReply({
                 embeds: [embed],
@@ -60,9 +59,7 @@ export class ButtonContext<C extends HyperionClient = HyperionClient> extends Co
 
         return this.interaction.editReply({
             ...options,
-            embeds: options.embeds?.map(builder =>
-                builder instanceof EmbedBuilder ? builder : builder(new EmbedBuilder())
-            ),
+            embeds: options.embeds?.map(resolveEmbed),
             components: options.components?.map(components =>
                 new ActionRowBuilder<any>().addComponents(components)
             ),

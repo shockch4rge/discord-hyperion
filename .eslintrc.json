@@ -1,7 +1,7 @@
 {
     "env": {
         "commonjs": true,
-        "es2021": true,
+        "es2022": true,
         "node": true
     },
     "extends": [
@@ -72,6 +72,7 @@
         "@typescript-eslint/no-extra-non-null-assertion": "error",
         "@typescript-eslint/no-extra-semi": "error",
         "@typescript-eslint/no-extra-parens": "warn",
+        "@typescript-eslint/no-unused-vars": "off",
         "@typescript-eslint/no-implied-eval": "error",
         "@typescript-eslint/no-invalid-this": "warn",
         "@typescript-eslint/no-invalid-void-type": "warn",
@@ -118,7 +119,10 @@
         /* ESLint */
         "indent": [
             "error",
-            4
+            4,
+            {
+                "SwitchCase": 1
+            }
         ],
         "linebreak-style": [
             "error",
@@ -131,6 +135,7 @@
                 "allowTemplateLiterals": true
             }
         ],
+        "no-unused-expressions": "off",
         "default-case": [
             "warn"
         ],
