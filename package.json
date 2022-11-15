@@ -1,9 +1,11 @@
 {
   "name": "discord-hyperion",
   "version": "1.0.0",
-  "description": "Hyperion is a framework built on top of Discord.js v14 that aims to help developers create bots efficiently.",
-  "main": "lib/index.js",
+  "description": "Hyperion is a discord.js v14 framework that aims to help developers create bots efficiently.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "scripts": {
+    "build": "tsc",
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "npx ts-node-cwd ./bot/src/index.ts"
   },
