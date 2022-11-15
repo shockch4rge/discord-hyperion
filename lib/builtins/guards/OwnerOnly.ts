@@ -1,4 +1,6 @@
-import { MessageCommandContext, SlashCommandContext } from "../../../lib/structures/context";
+import {
+    BaseMessageCommandContext, BaseSlashCommandContext
+} from "../../../lib/structures/context";
 import { Guard } from "../../../lib/structures/Guard";
 
 export class OwnerOnly extends Guard {
@@ -9,17 +11,17 @@ export class OwnerOnly extends Guard {
         });
     }
 
-    public async slashRun(context: SlashCommandContext) {
+    public async slashRun(context: BaseSlashCommandContext) {
         return context.client.options.ownerIds.includes(context.interaction.user.id);
     }
 
-    public async onSlashFail(context: SlashCommandContext) {
+    public async onSlashFail(context: BaseSlashCommandContext) {
         await context.reply({
             content: this.options.message,
         });
     }
 
-    public async messageRun(context: MessageCommandContext): Promise<boolean> {
+    public async messageRun(context: BaseMessageCommandContext) {
         return context.client.options.ownerIds.includes(context.message.author.id);
     }
 }

@@ -1,15 +1,17 @@
-import { ActionRowBuilder, EmbedBuilder, Guild, SelectMenuInteraction } from "discord.js";
+import { ActionRowBuilder, SelectMenuInteraction } from "discord.js";
 
 import { HyperionClient } from "../../HyperionClient";
-import { AltInteractionReplyOptions, AltInteractionUpdateOptions, Context } from "./Context";
+import { resolveEmbed } from "../../util/resolvers";
+import {
+    AltInteractionReplyOptions, AltInteractionUpdateOptions, BaseContext
+} from "./BaseContext";
 
-export class SelectMenuContext<C extends HyperionClient = HyperionClient> extends Context<C> {
+export class BaseSelectMenuContext<C extends HyperionClient = HyperionClient> extends BaseContext<C> {
     public constructor(
         client: C,
         public readonly interaction: SelectMenuInteraction,
-        guild: Guild | null
     ) {
-        super(client, guild);
+        super(client, interaction.guild);
     }
 
     public get values() {
@@ -20,14 +22,9 @@ export class SelectMenuContext<C extends HyperionClient = HyperionClient> extend
         return this.interaction.values[0];
     }
 
-    public async embed(builder: (embed: EmbedBuilder) => EmbedBuilder) {
-        return this.update(builder(new EmbedBuilder()));
-    }
-
     public async update(options: AltInteractionUpdateOptions) {
         if (this.interaction.replied) {
-            this.client.logger.warn("Interaction already replied to.");
-            return;
+            this.client.logger.error("Interaction already replied to.");
         }
 
         if (typeof options === "string") {
@@ -37,7 +34,7 @@ export class SelectMenuContext<C extends HyperionClient = HyperionClient> extend
         }
 
         if (this.isEmbedBuildable(options)) {
-            const embed = options instanceof EmbedBuilder ? options : options(new EmbedBuilder());
+            const embed = resolveEmbed(options);
 
             return this.interaction.update({
                 embeds: [embed],
@@ -46,9 +43,7 @@ export class SelectMenuContext<C extends HyperionClient = HyperionClient> extend
 
         return this.interaction.update({
             ...options,
-            embeds: options.embeds?.map(builder =>
-                builder instanceof EmbedBuilder ? builder : builder(new EmbedBuilder())
-            ),
+            embeds: options.embeds?.map(resolveEmbed),
             components: options.components?.map(components =>
                 new ActionRowBuilder<any>().addComponents(components)
             ),
@@ -63,7 +58,7 @@ export class SelectMenuContext<C extends HyperionClient = HyperionClient> extend
         }
 
         if (this.isEmbedBuildable(options)) {
-            const embed = options instanceof EmbedBuilder ? options : options(new EmbedBuilder());
+            const embed = resolveEmbed(options);
 
             return this.interaction.editReply({
                 embeds: [embed],
@@ -72,9 +67,7 @@ export class SelectMenuContext<C extends HyperionClient = HyperionClient> extend
 
         return this.interaction.editReply({
             ...options,
-            embeds: options.embeds?.map(builder =>
-                builder instanceof EmbedBuilder ? builder : builder(new EmbedBuilder())
-            ),
+            embeds: options.embeds?.map(resolveEmbed),
             components: options.components?.map(components =>
                 new ActionRowBuilder<any>().addComponents(components)
             ),

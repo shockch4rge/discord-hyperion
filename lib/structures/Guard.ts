@@ -1,8 +1,8 @@
 import {
-    ButtonContext, ContextMenuCommandContext, HybridContextMenuCommandInteraction,
-    MessageCommandContext, SlashCommandContext
+    BaseButtonContext, BaseContextMenuCommandContext, BaseMessageCommandContext,
+    BaseSlashCommandContext, HybridContextMenuCommandInteraction
 } from "./context";
-import { SelectMenuContext } from "./context/SelectMenuContext";
+import { BaseSelectMenuContext } from "./context/BaseSelectMenuContext";
 
 export abstract class Guard {
     public readonly options: GuardOptions;
@@ -14,27 +14,23 @@ export abstract class Guard {
         };
     }
 
-    public slashRun?(context: SlashCommandContext): Promise<boolean>;
+    public slashRun?(context: BaseSlashCommandContext): Promise<boolean>;
 
-    public onSlashFail?(context: SlashCommandContext): Promise<void>;
+    public onSlashFail?(context: BaseSlashCommandContext): Promise<void>;
 
-    public contextMenuRun?<I extends HybridContextMenuCommandInteraction>(
-        context: ContextMenuCommandContext<I>
-    ): Promise<boolean>;
+    public contextMenuRun?(context: BaseContextMenuCommandContext): Promise<boolean>;
 
-    public contextMenuFail?<I extends HybridContextMenuCommandInteraction>(
-        context: ContextMenuCommandContext<I>
-    ): Promise<void>;
+    public contextMenuFail?(context: BaseContextMenuCommandContext): Promise<void>;
 
-    public buttonRun?(context: ButtonContext): Promise<boolean>;
+    public buttonRun?(context: BaseButtonContext): Promise<boolean>;
 
-    public buttonFail?(context: ButtonContext): Promise<void>;
+    public buttonFail?(context: BaseButtonContext): Promise<void>;
 
-    public selectMenuRun?(context: SelectMenuContext): Promise<boolean>;
+    public selectMenuRun?(context: BaseSelectMenuContext): Promise<boolean>;
 
-    public selectMenuFail?(context: SelectMenuContext): Promise<void>;
+    public selectMenuFail?(context: BaseSelectMenuContext): Promise<void>;
 
-    public messageRun?(context: MessageCommandContext): Promise<boolean>;
+    public messageRun?(context: BaseMessageCommandContext): Promise<boolean>;
 }
 
 export type GuardOptions = {

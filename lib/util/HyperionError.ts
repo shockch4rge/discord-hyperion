@@ -9,8 +9,10 @@ export const HyperionErrors = {
     ModalNotFound: (modal: string) => `Modal '${modal}' not found.` as const,
     DeleteGuildCommandsFail: (guildId: string) =>
         `Failed to delete commands in guild ID [${guildId}].` as const,
+    DuplicateMessageCommandAlias: (alias: string, original: string) =>
+        `Duplicate message command alias '${alias}' for '${original}' found.` as const,
 };
- 
+
 export type HErrors = typeof HyperionErrors;
 export type HErrorKey = keyof HErrors;
 export type HErrorArgs<K extends HErrorKey> = Parameters<HErrors[K]>;
