@@ -1,10 +1,10 @@
 import chalk from "chalk";
+import { Events, userMention } from "discord.js";
 import { parseMessage } from "djs-message-commands";
 import assert from "node:assert/strict";
 import ora from "ora";
 
 import { HyperionClient } from "./HyperionClient";
-import { BaseSelectMenuContext } from "./structures/context";
 import { CommandArgResolver } from "./structures/interaction/command";
 import { HyperionError } from "./util/HyperionError";
 
@@ -21,9 +21,9 @@ export const start = async (client: HyperionClient) => {
     await client.modals.register();
     await client.events.register();
 
-    client.on("ready", () => { });
+    client.on(Events.ClientReady, () => { });
 
-    client.on("interactionCreate", async interaction => {
+    client.on(Events.InteractionCreate, async interaction => {
         if (interaction.isChatInputCommand()) {
             const command = client.commands.get(interaction.commandName);
 
@@ -51,6 +51,33 @@ export const start = async (client: HyperionClient) => {
                     throw new HyperionError(e => e.SubcommandNotFound, subcommandName);
                 }
 
+                for (const GuardFactory of subcommand.options.guards ?? []) {
+                    const guard = new GuardFactory();
+
+                    assert(guard.slashRun, "Guard does not have a slashRun method.");
+
+                    try {
+                        const passed = await guard.slashRun(context);
+                        if (passed) continue;
+
+                        client.logger.info(`[SLASH_SUBCOMMAND_GUARD] -> '${guard.options.name}' failed for user ${userMention(interaction.user.id)}`);
+
+                        if (guard.onSlashFail) {
+                            await guard.onSlashFail(context);
+                            return;
+                        }
+
+                        await interaction.editReply({
+                            content: guard.options.message,
+                        });
+                        return;
+                    }
+                    catch (e) {
+                        client.logger.warn(`[SLASH_SUBCOMMAND_GUARD] -> '${guard.options.name}' failed to run: ${(e as Error).message}`);
+                        return;
+                    }
+                }
+
                 try {
                     await subcommand.run(context);
                 }
@@ -74,6 +101,7 @@ export const start = async (client: HyperionClient) => {
                         const passed = await guard.slashRun(context);
                         if (!passed) {
                             await guard.onSlashFail!(context);
+                            client.logger.info(`[SLASH_COMMAND_GUARD] -> ${guard.options.name} failed for user ${userMention(interaction.user.id)}`);
                         }
 
                         return;
@@ -85,20 +113,18 @@ export const start = async (client: HyperionClient) => {
                     return;
                 }
                 catch (e) {
-                    const error = e as Error;
-                    client.logger.warn(error.message);
-                    client.logger.warn(`'${command.options.name}' failed to run.`);
+                    client.logger.warn(`[SLASH_COMMAND_GUARD] -> '${guard.options.name}' failed to run: ${(e as Error).message}`);
                     return;
                 }
             }
 
             try {
                 await command.slashRun(context);
+                client.logger.info(`[SLASH_COMMAND] -> '${command.options.name}' used by ${userMention(interaction.user.id)}`);
             }
             catch (e) {
                 const error = e as Error;
-                client.logger.warn(error.message);
-                client.logger.warn(`'${command.options.name}' failed to run: ${error}`);
+                client.logger.warn(`[SLASH_COMMAND] -> '${command.options.name}' failed to run: ${error.message}`);
                 return;
             }
 
@@ -116,7 +142,7 @@ export const start = async (client: HyperionClient) => {
 
             if (!command.isContextMenuCommand()) return;
 
-            const context = new client.options.ContextMenuCommandContext(interaction, client, interaction.guild);
+            const context = new client.options.ContextMenuCommandContext(client, interaction);
 
             for (const GuardFactory of command.options.guards ?? []) {
                 const guard = new GuardFactory();
@@ -163,7 +189,7 @@ export const start = async (client: HyperionClient) => {
                 throw new HyperionError(e => e.ButtonNotFound, interaction.customId);
             }
 
-            const context = new client.options.ButtonContext(client, interaction, interaction.guild);
+            const context = new client.options.ButtonContext(client, interaction);
 
             for (const GuardFactory of button.options.guards ?? []) {
                 const guard = new GuardFactory();
@@ -274,7 +300,7 @@ export const start = async (client: HyperionClient) => {
         }
     });
 
-    client.on("messageCreate", async message => {
+    client.on(Events.MessageCreate, async message => {
         if (message.author.bot) return;
 
         const { commandName, isPrefixed } = parseMessage({
@@ -302,7 +328,7 @@ export const start = async (client: HyperionClient) => {
             return;
         }
 
-        const context = new client.options.MessageCommandContext(client, message, args, message.guild);
+        const context = new client.options.MessageCommandContext(client, message, args);
 
         try {
             await command.messageRun(context);
@@ -310,7 +336,7 @@ export const start = async (client: HyperionClient) => {
         catch (e) {
             // TODO:
         }
-    
+
     });
 
     const login = ora("Logging in...").start();
