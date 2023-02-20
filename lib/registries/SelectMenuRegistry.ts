@@ -1,16 +1,16 @@
-import chalk from "chalk";
 import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import ora from "ora";
 import path from "path";
 
 import { SelectMenu } from "../structures/interaction/component";
+import { colorize } from "../util/colorize";
 import { Registry } from "./";
 
 export class SelectMenuRegistry extends Registry<SelectMenu> {
     public async register() {
         const spinner = ora({
-            text: chalk.cyanBright`Registering select menus...`,
+            text: colorize(c => c.cyanBright`Registering select menus...`),
         }).start();
 
         const dirPath = path.join(this.importPath, `./interactions/select-menus`);
@@ -27,13 +27,15 @@ export class SelectMenuRegistry extends Registry<SelectMenu> {
 
                 assert(
                     guard.selectMenuRun,
-                    `${chalk.redBright("Guard ")}${chalk.cyanBright(
-                        `'${guard.options.name}'`
-                    )}${chalk.redBright(" must have a ")}${chalk.cyanBright(
-                        "'selectMenuRun'"
-                    )}${chalk.redBright(" method for select menu ")}${chalk.cyanBright(
-                        `'${selectMenu.options.id}'`
-                    )}${chalk.redBright(".")}`
+                    colorize(
+                        c => c.redBright`Guard`,
+                        c => c.cyanBright`[${guard.options.name}]`,
+                        c => c.redBright`must have a`,
+                        c => c.cyanBright`[selectMenuRun]`,
+                        c => c.redBright`method for select menu`,
+                        c => c.cyanBright`[${selectMenu.options.id}]`,
+                        c => c.redBright`.`,
+                    )
                 );
             }
 
@@ -41,7 +43,11 @@ export class SelectMenuRegistry extends Registry<SelectMenu> {
         }
 
         spinner.succeed(
-            chalk.green`Registered ${chalk.greenBright.bold(this.size)} select ${this.size !== 1 ? "menus" : "menu"}!`
+            colorize(
+                c => c.greenBright`Registered`,
+                c => c.greenBright.bold(this.size),
+                c => c.greenBright`select ${this.size !== 1 ? "menus" : "menu"}!`,
+            )
         );
     }
 }

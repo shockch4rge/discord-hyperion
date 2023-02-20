@@ -1,15 +1,15 @@
-import chalk from "chalk";
 import fs from "node:fs/promises";
 import path from "node:path";
 import ora from "ora";
 
 import { Modal } from "../structures/interaction/component/modal";
+import { colorize } from "../util/colorize";
 import { Registry } from "./Registry";
 
 export class ModalRegistry extends Registry<Modal> {
     public async register() {
         const spinner = ora({
-            text: chalk.cyanBright`Registering modals...`,
+            text: colorize(c => c.cyanBright`Registering modals...`),
         }).start();
 
         const dirPath = path.join(this.importPath, `./interactions/modals`);
@@ -25,7 +25,11 @@ export class ModalRegistry extends Registry<Modal> {
         }
 
         spinner.succeed(
-            chalk.green`Registered ${chalk.greenBright.bold(this.size)} ${this.size !== 1 ? "modals" : "modal"}!`
+            colorize(
+                c => c.greenBright`Registered`,
+                c => c.greenBright.bold(this.size),
+                c => c.greenBright`${this.size === 1 ? "modal" : "modals"}!`,
+            )
         );
     }
 }

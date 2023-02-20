@@ -1,7 +1,5 @@
-import chalk from "chalk";
 import { ApplicationCommand, Collection, REST, Routes } from "discord.js";
 import assert from "node:assert/strict";
-import { Dirent } from "node:fs";
 import fs from "node:fs/promises";
 import ora from "ora";
 import path from "path";
@@ -9,6 +7,7 @@ import * as _ from "radash";
 
 import { HyperionClient } from "../HyperionClient";
 import { Command, Subcommand } from "../structures/interaction/command";
+import { colorize } from "../util/colorize";
 import { HyperionError } from "../util/HyperionError";
 import { isConstructor } from "../util/types";
 import { Registry } from "./Registry";
@@ -33,11 +32,18 @@ export class CommandRegistry extends Registry<Command> {
 
         assert(
             isConstructor(SubcommandClass),
-            chalk.redBright`A subcommand class was not exported at ${chalk.cyanBright(shortPath)}`
+            colorize(
+                c => c.redBright`A subcommand class was not exported at`,
+                c => c.cyanBright(shortPath),
+            )
         );
         assert(
             Subcommand.isPrototypeOf(SubcommandClass),
-            chalk.redBright`Class at ${shortPath} must extend the Subcommand class!`
+            colorize(
+                c => c.redBright`Class at`,
+                c => c.cyanBright(shortPath),
+                c => c.redBright`must extend the Subcommand class!`,
+            )
         );
 
         return new SubcommandClass(command);
@@ -52,7 +58,7 @@ export class CommandRegistry extends Registry<Command> {
         }
 
         const spinner = ora({
-            text: chalk.cyanBright`Registering application commands...`,
+            text: colorize(c => c.cyanBright`Registering application commands...`),
         }).start();
 
         const dirPath = path.join(this.importPath, `./interactions/commands`);
@@ -74,7 +80,9 @@ export class CommandRegistry extends Registry<Command> {
                     parentCommandFile &&
                     this.isValidFile(parentCommandFile) &&
                     subcommandDirs[0].name === "subcommands",
-                    chalk.redBright`A command with subcommands must be a folder that holds both a file with the same name, and a folder named 'subcommands'.`
+                    colorize(
+                        c => c.redBright`A parent command must be a folder that contains a file with the command's name and a 'subcommands' folder.`
+                    )
                 );
 
                 const parentCommand = await this.import<Command>(
@@ -87,11 +95,11 @@ export class CommandRegistry extends Registry<Command> {
 
                 assert(
                     !parentCommand.isContextMenuCommand(),
-                    chalk.redBright`A parentCommand with subcommands cannot be a context menu command.`
+                    colorize(c => c.redBright`A parent command cannot be a context menu command.`),
                 );
                 assert(
                     !parentCommand.options.args || parentCommand.options.args.length === 0,
-                    chalk.redBright`A command with subcommands cannot have arguments.`
+                    colorize(c => c.redBright`A parent command cannot have arguments.`),
                 );
 
                 const subcommandDir = await fs.readdir(
@@ -129,7 +137,11 @@ export class CommandRegistry extends Registry<Command> {
 
             assert(
                 !this.has(command.options.name),
-                chalk.redBright`Command '${command.options.name}' already exists.`
+                colorize(
+                    c => c.redBright("Command"),
+                    c => c.cyanBright(`[${command.options.name}]`),
+                    c => c.redBright("already exists."),
+                )
             );
 
             for (const GuardFactory of command.options.guards ?? []) {
@@ -138,44 +150,52 @@ export class CommandRegistry extends Registry<Command> {
                 if (command.isSlashCommand()) {
                     assert(
                         guard.slashRun,
-                        `${chalk.redBright("Guard ")}${chalk.cyanBright(
-                            `'${guard.options.name}'`
-                        )}${chalk.redBright(" must have a ")}${chalk.cyanBright(
-                            "'slashRun'"
-                        )}${chalk.redBright(" method for command ")}${chalk.cyanBright(
-                            `'${command.options.name}'`
-                        )}${chalk.redBright(".")}`
+                        colorize(
+                            c => c.redBright("Guard"),
+                            c => c.cyanBright(`[${guard.options.name}]`),
+                            c => c.redBright("must have a"),
+                            c => c.cyanBright("[slashRun]"),
+                            c => c.redBright("method for command"),
+                            c => c.cyanBright(`[${command.options.name}]`),
+                            c => c.redBright("."),
+                        )
                     );
                 }
 
                 if (command.isMessageCommand()) {
                     assert(
                         guard.messageRun,
-                        `${chalk.redBright("Guard ")}${chalk.cyanBright(
-                            `'${guard.options.name}'`
-                        )}${chalk.redBright(" must have a ")}${chalk.cyanBright(
-                            "'messageRun'"
-                        )}${chalk.redBright(" method for command ")}${chalk.cyanBright(
-                            `'${command.options.name}'`
-                        )}${chalk.redBright(".")}`
+                        colorize(
+                            c => c.redBright("Guard"),
+                            c => c.cyanBright(`[${guard.options.name}]`),
+                            c => c.redBright("must have a"),
+                            c => c.cyanBright("[messageRun]"),
+                            c => c.redBright("method for command"),
+                            c => c.cyanBright(`[${command.options.name}]`),
+                            c => c.redBright("."),
+                        )
                     );
                 }
 
                 if (command.isContextMenuCommand()) {
                     assert(
                         guard.contextMenuRun,
-                        `${chalk.redBright("Guard ")}${chalk.cyanBright(
-                            `'${guard.options.name}'`
-                        )}${chalk.redBright(" must have a ")}${chalk.cyanBright(
-                            "'contextMenuRun'"
-                        )}${chalk.redBright(" method for command ")}${chalk.cyanBright(
-                            `'${command.options.name}'`
-                        )}${chalk.redBright(".")}`
+                        colorize(
+                            c => c.redBright("Guard"),
+                            c => c.cyanBright(`[${guard.options.name}]`),
+                            c => c.redBright("must have a"),
+                            c => c.cyanBright("[contextMenuRun]"),
+                            c => c.redBright("method for command"),
+                            c => c.cyanBright(`[${command.options.name}]`),
+                            c => c.redBright("."),
+                        )
                     );
 
                     assert(
                         command.options.contextMenuType,
-                        chalk.redBright`Context command ${command.options.name} must have a contextMenuType.`
+                        colorize(
+                            c => c.redBright`Context command ${command.options.name} must have a contextMenuType.`
+                        ),
                     );
                 }
             }
@@ -188,12 +208,16 @@ export class CommandRegistry extends Registry<Command> {
 
         assert(
             slashCommands.size <= 100,
-            chalk.redBright`You can only have 100 chat input commands per application.`
+            colorize(
+                c => c.redBright`You can only have 100 chat input commands per application.`
+            )
         );
         assert(
             cmCommands.size <= 10,
-            `${chalk.redBright
-                .bold`${cmCommands.size}`}${chalk.redBright`/10 context menu commands registered.`}`
+            colorize(
+                c => c.redBright.bold(cmCommands.size),
+                c => c.redBright`/10 context menu commands registered.`,
+            )
         );
 
         const [userCmCommands, messageCmCommands] = cmCommands
@@ -202,19 +226,25 @@ export class CommandRegistry extends Registry<Command> {
 
         assert(
             userCmCommands.size <= 5,
-            `${chalk.redBright
-                .bold`${userCmCommands.size}`}${chalk.redBright`/5 user context menu commands registered.`}`
+            colorize(
+                c => c.redBright.bold(userCmCommands.size),
+                c => c.redBright("/5 user context menu commands registered.")
+            )
         );
         assert(
             messageCmCommands.size <= 5,
-            `${chalk.redBright
-                .bold`${messageCmCommands.size}`}${chalk.redBright`/5 message context menu commands registered.`}`
+            colorize(
+                c => c.redBright.bold(messageCmCommands.size),
+                c => c.redBright("/5 message context menu commands registered.")
+            )
         );
 
         if (devGuildIds && devGuildIds.length > 0) {
             assert(
                 process.env.NODE_ENV === "development",
-                chalk.redBright`You've specified guild IDs for development, but you're not in development mode. Make sure that the 'NODE_ENV' variable in your .env commandFile is set to 'development'.`
+                colorize(
+                    c => c.redBright`You've specified guild IDs for development, but you're not in development mode. Make sure that the 'NODE_ENV' variable in your .env commandFile is set to 'development'.`
+                ),
             );
 
             for (const [index, guildId] of devGuildIds.entries()) {
@@ -229,14 +259,24 @@ export class CommandRegistry extends Registry<Command> {
             }
 
             spinner.succeed(
-                chalk.green`Registered ${chalk.greenBright.bold(slashCommands.size)} slash ${slashCommands.size === 1 ? "command" : "commands"} and ${chalk.greenBright.bold(cmCommands.size)} context menu ${cmCommands.size === 1 ? "command" : "commands"} for ${chalk.greenBright.bold(devGuildIds.length)} development ${devGuildIds.length !== 1 ? "guilds" : "guild"}!`
+                colorize(
+                    c => c.greenBright`Registered`,
+                    c => c.greenBright.bold(slashCommands.size),
+                    c => c.greenBright`slash ${slashCommands.size === 1 ? "command" : "commands"} and`,
+                    c => c.greenBright.bold(cmCommands.size),
+                    c => c.greenBright`context menu ${cmCommands.size === 1 ? "command" : "commands"} for`,
+                    c => c.greenBright.bold(devGuildIds.length),
+                    c => c.greenBright`development ${devGuildIds.length !== 1 ? "guilds" : "guild"}!`
+                )
             );
             return;
         }
 
         assert(
             process.env.NODE_ENV === "production",
-            chalk.redBright`You're not in production mode. Make sure that NODE_ENV in .env is set to 'production', OR add guild IDs in Hyperion's options.`
+            colorize(
+                c => c.redBright`You're not in production mode. Make sure that NODE_ENV in .env is set to 'production', OR add guild IDs in Hyperion's options.`
+            )
         );
 
         const route = Routes.applicationCommands(process.env.DISCORD_APP_ID!);
@@ -260,7 +300,7 @@ export class CommandRegistry extends Registry<Command> {
 
     private registerMessageCommands() {
         const spinner = ora({
-            text: chalk.cyanBright`Registering message commands...`,
+            text: colorize(c => c.cyanBright`Registering message commands...`),
         }).start();
 
         for (const [name, cmd] of this.filter(cmd => cmd.isMessageCommand())) {
@@ -285,7 +325,7 @@ export class CommandRegistry extends Registry<Command> {
 
     private async cleanGuildCommands(guildIds: string[]) {
         const spinner = ora({
-            text: chalk.cyanBright`Cleaning guild application commands...`,
+            text: colorize(c => c.cyanBright`Cleaning guild application commands...`),
         });
 
         for (const guildId of guildIds) {
@@ -294,7 +334,9 @@ export class CommandRegistry extends Registry<Command> {
             )();
 
             if (err) {
-                spinner.fail(chalk.redBright`Failed to get commands in guild ID [${guildId}].`);
+                spinner.fail(
+                    colorize(c => c.redBright`Failed to get commands in guild ID [${guildId}].`)
+                );
                 console.error(err);
                 continue;
             }
@@ -312,7 +354,10 @@ export class CommandRegistry extends Registry<Command> {
 
                 if (err) {
                     spinner.fail(
-                        chalk.redBright`Failed to delete command '${command.name}' in guild ID [${guildId}].`
+                        colorize(c => c.redBright`Failed to delete command`, 
+                            c => c.redBright.bold`[${command.name}]`,
+                            c => c.redBright`in guild ID [${guildId}].`
+                        ),
                     );
                     throw new HyperionError(e => e.DeleteGuildCommandsFail, guildId);
                 }

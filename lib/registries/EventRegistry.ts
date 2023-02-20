@@ -1,4 +1,3 @@
-import chalk from "chalk";
 import { ClientEvents } from "discord.js";
 import assert from "node:assert/strict";
 import fs from "node:fs/promises";
@@ -7,6 +6,7 @@ import ora from "ora";
 
 import { HyperionClient } from "../HyperionClient";
 import { Event } from "../structures/Event";
+import { colorize } from "../util/colorize";
 import { isConstructor } from "../util/types";
 import { Registry } from "./Registry";
 
@@ -23,11 +23,14 @@ export class EventRegistry extends Registry<Event> {
 
         assert(
             isConstructor(EventClass),
-            chalk.redBright`An event class was not exported at ${chalk.cyanBright(shortPath)}`
+            colorize(
+                c => c.redBright`An event class was not exported at`, 
+                c => c.cyanBright(shortPath)
+            )
         );
         assert(
             Event.isPrototypeOf(EventClass),
-            chalk.redBright`Object at ${shortPath} must extend the Event class!`
+            colorize(c => c.redBright`Object at ${shortPath} must extend the Event class!`),
         );
 
         return new EventClass(this.client);
@@ -35,7 +38,7 @@ export class EventRegistry extends Registry<Event> {
 
     public async register() {
         const spinner = ora({
-            text: chalk.cyanBright`Registering events...`,
+            text: colorize(c => c.cyanBright`Registering events...`),
         }).start();
 
         const dirPath = path.join(this.importPath, `./events`);
@@ -48,12 +51,11 @@ export class EventRegistry extends Registry<Event> {
             );
 
             const event = await this.importEvent(path.join(dirPath, eventFile.name));
-            const eventName =
-                event.options.name ?? (eventFile.name.slice(0, -3) as keyof ClientEvents);
+            const eventName = (event.options && event.options.name) ?? (eventFile.name.slice(0, -3) as keyof ClientEvents);
 
             assert(
                 !this.has(eventName),
-                chalk.redBright`Event ${eventName} already registered. Please specify a different name property.`
+                colorize(c => c.redBright`Event [${eventName}] already registered. Please specify a different name property.`),
             );
 
             if (event.options.once) {
@@ -66,7 +68,13 @@ export class EventRegistry extends Registry<Event> {
             this.set(`${eventName}-${this.client.options.name}`, event);
         }
 
-        spinner.succeed(chalk.green`Registered ${chalk.greenBright.bold(this.size)} events!`);
+        spinner.succeed(
+            colorize(
+                c => c.green`Registered`,
+                c => c.greenBright.bold(this.size),
+                c => c.green`events!`,
+            ),
+        );
     }
 
     public deregister(key: string) {

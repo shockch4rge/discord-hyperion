@@ -1,10 +1,10 @@
-import chalk from "chalk";
 import { Collection } from "discord.js";
 import assert from "node:assert/strict";
 import { Dirent } from "node:fs";
 import path from "node:path";
 
 import { HyperionClient } from "../HyperionClient";
+import { colorize } from "../util/colorize";
 import { isConstructor } from "../util/types";
 
 export abstract class Registry<T> extends Collection<string, T> {
@@ -26,7 +26,10 @@ export abstract class Registry<T> extends Collection<string, T> {
 
         assert(
             isConstructor(Class),
-            chalk.redBright`An event class was not exported at ${chalk.cyanBright(shortPath)}`
+            colorize(
+                c => c.redBright`An event class was not exported at`,
+                c => c.cyanBright(shortPath),
+            )
         );
 
         return new Class();
