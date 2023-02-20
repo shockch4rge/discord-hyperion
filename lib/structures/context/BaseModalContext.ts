@@ -1,4 +1,6 @@
-import { ActionRowBuilder, ComponentType, ModalMessageModalSubmitInteraction } from "discord.js";
+import {
+    ActionRowBuilder, ComponentType, EmbedBuilder, ModalMessageModalSubmitInteraction
+} from "discord.js";
 
 import { HyperionClient } from "../../HyperionClient";
 import { resolveEmbed } from "../../util/resolvers";
@@ -48,5 +50,18 @@ export class BaseModalContext<C extends HyperionClient = HyperionClient> extends
                 new ActionRowBuilder<any>().addComponents(components)
             ),
         });
+    }
+
+    public buildLogEmbed() {
+        return new EmbedBuilder()
+            .setAuthor({
+                name: `${this.interaction.user.tag} used [${this.interaction.customId}] => (MODAL)`,
+                iconURL: this.interaction.user.avatarURL() ?? undefined,
+            })
+            .setFooter({
+                text: `Timestamp: ${this.interaction.createdTimestamp}`,
+                iconURL: this.guild?.iconURL() ?? undefined,
+            })
+            .setColor("Blurple");
     }
 }

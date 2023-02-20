@@ -7,13 +7,19 @@ import { HyperionClient } from "../../HyperionClient";
 import { Modify } from "../../util/types";
 
 export abstract class BaseContext<C extends HyperionClient = HyperionClient> {
-    public constructor(public readonly client: C, public readonly guild: Guild | null) { }
+    public readonly logger: C["logger"];
+
+    public constructor(public readonly client: C, public readonly guild: Guild | null) { 
+        this.logger = client.logger;
+    }
 
     protected isEmbedBuildable(
         options: AltInteractionReplyOptions | AltInteractionUpdateOptions | AltMessageReplyOptions
     ): options is EmbedFnOrBuilder {
         return typeof options === "function" || options instanceof EmbedBuilder;
     }
+
+    public abstract buildLogEmbed(): EmbedBuilder;
 }
 
 export type AltInteractionReplyOptions = EmbedFnOrBuilder | ModifiedInteractionReplyOptions | string;

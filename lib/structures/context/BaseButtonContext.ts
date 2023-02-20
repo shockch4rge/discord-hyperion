@@ -1,4 +1,4 @@
-import { ActionRowBuilder, ButtonInteraction } from "discord.js";
+import { ActionRowBuilder, ButtonInteraction, EmbedBuilder } from "discord.js";
 
 import { HyperionClient } from "../..";
 import { resolveEmbed } from "../../util/resolvers";
@@ -64,5 +64,18 @@ export class BaseButtonContext<C extends HyperionClient = HyperionClient> extend
                 new ActionRowBuilder<any>().addComponents(components)
             ),
         });
+    }
+
+    public buildLogEmbed() {
+        return new EmbedBuilder()
+            .setAuthor({
+                name: `${this.interaction.user.tag} used [${this.interaction.customId}] => (BUTTON)`,
+                iconURL: this.interaction.user.avatarURL() ?? undefined,
+            })
+            .setFooter({
+                text: `Timestamp: ${this.interaction.createdTimestamp}`,
+                iconURL: this.guild?.iconURL() ?? undefined,
+            })
+            .setColor("Blurple");
     }
 }

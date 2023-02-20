@@ -1,5 +1,6 @@
 import {
-    ActionRowBuilder, MessageContextMenuCommandInteraction, UserContextMenuCommandInteraction
+    ActionRowBuilder, EmbedBuilder, MessageContextMenuCommandInteraction,
+    UserContextMenuCommandInteraction
 } from "discord.js";
 
 import { HyperionClient } from "../../HyperionClient";
@@ -7,7 +8,7 @@ import { resolveEmbed } from "../../util/resolvers";
 import { AltInteractionReplyOptions, BaseContext } from "./BaseContext";
 
 export class BaseContextMenuCommandContext<C extends HyperionClient = HyperionClient> extends BaseContext<C> {
-    public constructor(client: C, public readonly interaction: HybridContextMenuCommandInteraction) {
+    public constructor(client: C, public readonly kind: string, public readonly interaction: HybridContextMenuCommandInteraction) {
         super(client, interaction.guild);
     }
 
@@ -75,6 +76,19 @@ export class BaseContextMenuCommandContext<C extends HyperionClient = HyperionCl
                 new ActionRowBuilder<any>().addComponents(components)
             ),
         });
+    }
+
+    public buildLogEmbed() {
+        return new EmbedBuilder()
+            .setAuthor({
+                name: `${this.interaction.user.tag} used [${this.interaction.commandName}] => (${this.kind.toUpperCase()}_CONTEXT_MENU)`,
+                iconURL: this.interaction.user.avatarURL() ?? undefined,
+            })
+            .setFooter({
+                text: `Timestamp: ${this.interaction.createdTimestamp}`,
+                iconURL: this.guild?.iconURL() ?? undefined,
+            })
+            .setColor("Blurple");
     }
 }
 

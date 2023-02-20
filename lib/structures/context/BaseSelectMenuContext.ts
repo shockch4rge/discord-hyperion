@@ -1,4 +1,6 @@
-import { ActionRowBuilder, SelectMenuInteraction } from "discord.js";
+import {
+    ActionRowBuilder, channelMention, Colors, EmbedBuilder, SelectMenuInteraction
+} from "discord.js";
 
 import { HyperionClient } from "../../HyperionClient";
 import { resolveEmbed } from "../../util/resolvers";
@@ -72,5 +74,36 @@ export class BaseSelectMenuContext<C extends HyperionClient = HyperionClient> ex
                 new ActionRowBuilder<any>().addComponents(components)
             ),
         });
+    }
+
+    public buildLogEmbed() {
+        return new EmbedBuilder()
+            .setAuthor({
+                name: `${this.interaction.user.tag} used [${this.interaction.customId}]: (SELECT_MENU)`,
+                iconURL: this.interaction.user.avatarURL() ?? undefined,
+            })
+            .setFields([
+                {
+                    name: "User",
+                    value: `ID: \`${this.interaction.user.id}\` | Tag: \`${this.interaction.user.tag}\``,
+                },
+                {
+                    name: "Guild",
+                    value: `ID: \`${this.interaction.guildId ?? "DM"}\``,
+                },
+                {
+                    name: "Channel",
+                    value: `ID: ${channelMention(this.interaction.channelId)}`,
+                },
+                {
+                    name: "Interaction",
+                    value: `ID: \`${this.interaction.message.id}\` | Type: SELECT_MENU`,
+                }
+            ])
+            .setFooter({
+                text: `Timestamp: ${this.interaction.createdAt.toISOString()}`,
+                iconURL: this.guild?.iconURL() ?? undefined,
+            })
+            .setColor("Blurple");
     }
 }

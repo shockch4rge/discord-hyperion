@@ -1,4 +1,4 @@
-import { ActionRowBuilder, ChatInputCommandInteraction } from "discord.js";
+import { ActionRowBuilder, ChatInputCommandInteraction, Colors, EmbedBuilder } from "discord.js";
 
 import { HyperionClient } from "../..";
 import { resolveEmbed } from "../../util/resolvers";
@@ -6,12 +6,27 @@ import { CommandArgResolver } from "../interaction/command/Command";
 import { AltInteractionReplyOptions, BaseContext } from "./BaseContext";
 
 export class BaseSlashCommandContext<C extends HyperionClient = HyperionClient> extends BaseContext<C> {
+    public readonly logger = this.client.logger;
+
     public constructor(
         client: C,
         public readonly interaction: ChatInputCommandInteraction,
         public readonly args: CommandArgResolver,
     ) {
         super(client, interaction.guild);
+    }
+
+    public buildLogEmbed() {
+        return new EmbedBuilder()
+            .setAuthor({
+                name: `${this.interaction.user.tag} used '${this.interaction.commandName}'`,
+                iconURL: this.interaction.user.avatarURL() ?? undefined,
+            })
+            .setFooter({
+                text: `Timestamp: ${this.interaction.createdTimestamp}`,
+                iconURL: this.guild?.iconURL() ?? undefined,
+            })
+            .setColor("Blurple");
     }
 
     public async reply(options: AltInteractionReplyOptions) {
@@ -33,7 +48,6 @@ export class BaseSlashCommandContext<C extends HyperionClient = HyperionClient> 
             ...options,
             embeds: options.embeds?.map(resolveEmbed),
             components: options.components?.map(components =>
-                // leave as any as our API abstracts ActionRow anyway
                 new ActionRowBuilder<any>().addComponents(components)
             ),
         });

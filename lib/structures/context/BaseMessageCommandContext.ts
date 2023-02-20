@@ -4,7 +4,7 @@ import { HyperionClient } from "../..";
 import { AltMessageReplyOptions, BaseContext } from "./BaseContext";
 
 export class BaseMessageCommandContext<C extends HyperionClient = HyperionClient> extends BaseContext<C> {
-    public constructor(client: C, public readonly message: Message, private readonly _args: unknown[]) {
+    public constructor(client: C, public readonly message: Message, public readonly commandName: string, private readonly _args: unknown[]) {
         super(client, message.guild);
     }
 
@@ -52,5 +52,18 @@ export class BaseMessageCommandContext<C extends HyperionClient = HyperionClient
         }
 
         return this.message.channel.send(options);
+    }
+
+    public buildLogEmbed() {
+        return new EmbedBuilder()
+            .setAuthor({
+                name: `${this.message.author.tag} used [${this.commandName}] => (MESSAGE)`,
+                iconURL: this.message.author.avatarURL() ?? undefined,
+            })
+            .setFooter({
+                text: `Timestamp: ${this.message.createdTimestamp}`,
+                iconURL: this.guild?.iconURL() ?? undefined,
+            })
+            .setColor("Blurple");
     }
 }
