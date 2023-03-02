@@ -111,7 +111,7 @@ class Help extends SharedPaginatedEmbedMethods {
         public readonly context: BaseButtonContext | BaseSelectMenuContext | BaseSlashCommandContext,
         public readonly options?: PaginatedHelpEmbedOptions,
     ) {
-        super(Help.buildHelpPages(context, options), Help.buildIndex(context, options));
+        super(Help.buildPages(context, options), Help.buildIndex(context, options));
     }
 
     private buildUpdateOptions(): Pick<InteractionReplyOptions | InteractionUpdateOptions, "components" | "embeds"> {
@@ -193,7 +193,7 @@ class Help extends SharedPaginatedEmbedMethods {
         this.sent = true;
     }
 
-    private static buildHelpPages(...args: ConstructorParameters<typeof Help>) {
+    private static buildPages(...args: ConstructorParameters<typeof Help>) {
         const [context, options] = args;
 
         const commands = context.client.commands;
