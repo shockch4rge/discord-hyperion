@@ -1,5 +1,5 @@
 import { Registry } from "./Registry";
-import type { Command, ConcreteSubcommandConstructor } from "../structs";
+import type { Command, ConcreteSubcommandConstructor, HyperionClient } from "../structs";
 import { Subcommand } from "../structs";
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -15,8 +15,8 @@ export class CommandRegistry extends Registry<string, Command> {
     public readonly discordApi = new REST({ version: "10" });
     public readonly devGuildIds: string[];
 
-    public constructor(options: CommandRegistryOptions) {
-        super(`interactions/commands`);
+    public constructor(client: HyperionClient, options: CommandRegistryOptions) {
+        super(client, `interactions/commands`);
         this.devGuildIds = options.devGuildIds;
         this.discordApi.setToken(process.env.CLIENT_TOKEN!);
     }

@@ -1,5 +1,6 @@
 import { Registry } from "./Registry";
 import type { SelectMenu } from "../structs";
+import type { HyperionClient } from "../structs";
 import ora from "ora";
 import chalk from "chalk";
 import fs from "node:fs/promises";
@@ -8,8 +9,8 @@ import assert from "node:assert/strict";
 import { color } from "../utils";
 
 export class SelectMenuRegistry extends Registry<string, SelectMenu> {
-    public constructor() {
-        super(`interactions/select-menus`);
+    public constructor(client: HyperionClient) {
+        super(client, `interactions/select-menus`);
     }
 
     public async register() {

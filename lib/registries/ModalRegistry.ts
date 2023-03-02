@@ -1,5 +1,6 @@
 import { Registry } from "./Registry";
 import type { Modal } from "../structs/";
+import type { HyperionClient } from "../structs/";
 import fs from "node:fs/promises";
 import path from "node:path";
 import chalk from "chalk";
@@ -7,8 +8,8 @@ import ora from "ora";
 import { color } from "../utils";
 
 export class ModalRegistry extends Registry<string, Modal> {
-    public constructor() {
-        super(`interactions/modals`);
+    public constructor(client: HyperionClient) {
+        super(client, `interactions/modals`);
     }
 
     public async register() {

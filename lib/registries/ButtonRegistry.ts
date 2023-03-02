@@ -1,5 +1,6 @@
 import { Registry } from "./Registry";
 import type { Button } from "../structs/";
+import type { HyperionClient } from "../structs/";
 import fs from "node:fs/promises";
 import path from "node:path";
 import chalk from "chalk";
@@ -8,8 +9,8 @@ import assert from "node:assert/strict";
 import { color } from "../utils";
 
 export class ButtonRegistry extends Registry<string, Button> {
-    public constructor() {
-        super(`interactions/buttons`);
+    public constructor(client: HyperionClient) {
+        super(client, `interactions/buttons`);
     }
 
     public async register() {

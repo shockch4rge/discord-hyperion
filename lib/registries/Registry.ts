@@ -3,17 +3,18 @@ import path from "node:path";
 import assert from "node:assert/strict";
 import type { Dirent } from "fs";
 import { color, isConstructor } from "../utils";
+import type { HyperionClient } from "../structs";
 
 export abstract class Registry<K extends string, V> extends Collection<K, V> {
     public readonly path: string;
 
-    protected constructor(pathExt: string) {
+    protected constructor(public readonly client: HyperionClient, pathExt: string) {
         super();
         this.path = path.join(process.cwd(), `src`, pathExt);
     }
 
-    protected async import<As>(path: string) {
-        const Class = (await import(path)).default as new () => As;
+    protected async import<As>(path: string, ...args: any[]) {
+        const Class = (await import(path)).default as new (...args: any[]) => As;
 
         const truncatedPath = path
             .match(/(?<=src).*/)?.[0]
@@ -28,7 +29,7 @@ export abstract class Registry<K extends string, V> extends Collection<K, V> {
             ),
         );
 
-        return new Class();
+        return new Class(...args);
     }
 
     /**
