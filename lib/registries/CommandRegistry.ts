@@ -1,365 +1,287 @@
-import { ApplicationCommand, Collection, REST, Routes } from "discord.js";
-import assert from "node:assert/strict";
-import fs from "node:fs/promises";
-import ora from "ora";
-import path from "path";
-import * as _ from "radash";
-
-import { HyperionClient } from "../HyperionClient";
-import { Command, Subcommand } from "../structures/interaction/command";
-import { colorize } from "../util/colorize";
-import { HyperionError } from "../util/HyperionError";
-import { isConstructor } from "../util/types";
 import { Registry } from "./Registry";
+import type { Command, ConcreteSubcommandConstructor } from "../structs";
+import { Subcommand } from "../structs";
+import fs from "node:fs/promises";
+import path from "node:path";
+import assert from "node:assert/strict";
+import { color, HyperionError, isConstructor } from "../utils";
+import type { ApplicationCommand } from "discord.js";
+import { Collection, REST, Routes } from "discord.js";
+import ora from "ora";
+import type { Dirent } from "fs";
+import { tryit } from "radash";
 
-export class CommandRegistry extends Registry<Command> {
-    public readonly rest = new REST({ version: "10" }).setToken(process.env.DISCORD_TOKEN!);
-    private readonly messageCommands = new Collection<string, Command>();
+export class CommandRegistry extends Registry<string, Command> {
+    public readonly discordApi = new REST({ version: "10" });
+    public readonly devGuildIds: string[];
 
-    public constructor(client: HyperionClient, public readonly options: CommandRegistryOptions) {
-        super(client);
+    public constructor(options: CommandRegistryOptions) {
+        super(`interactions/commands`);
+        this.devGuildIds = options.devGuildIds;
+        this.discordApi.setToken(process.env.CLIENT_TOKEN!);
     }
 
     private async importSubcommand(command: Command, path: string) {
-        const [SubcommandClass] = Object.values(
-            (await import(path)) as Record<string, new (command: Command) => Subcommand>
-        );
+        const SubcommandClass = (await import(path)).default as ConcreteSubcommandConstructor;
 
-        const shortPath = path
+        const truncatedPath = path
             .match(/(?<=src).*/)?.[0]
             .replaceAll(/\\/g, "/")
             .replace(/^/, "....") ?? path;
 
         assert(
             isConstructor(SubcommandClass),
-            colorize(
+            color(
                 c => c.redBright`A subcommand class was not exported at`,
-                c => c.cyanBright(shortPath),
+                c => c.cyanBright(truncatedPath),
             )
         );
         assert(
             Subcommand.isPrototypeOf(SubcommandClass),
-            colorize(
+            color(
                 c => c.redBright`Class at`,
-                c => c.cyanBright(shortPath),
-                c => c.redBright`must extend the Subcommand class!`,
+                c => c.cyanBright(truncatedPath),
+                c => c.redBright`must extend the`,
+                c => c.bgGreenBright`Subcommand`,
+                c => c.redBright`class!`,
             )
         );
 
         return new SubcommandClass(command);
     }
 
-    public async register() {
-        const devGuildIds = this.client.options.devGuildIds;
-        const shouldCleanLeftoverCommands = this.options.cleanLeftover ?? false;
+    private async registerCommandWithSubcommands(commandFile: Dirent) {
+        const parentCommandDir = await fs.readdir(path.join(this.path, commandFile.name), {
+            withFileTypes: true,
+        });
 
-        if (shouldCleanLeftoverCommands) {
-            await this.cleanGuildCommands(devGuildIds ?? []);
-        }
+        const subcommandDirs = parentCommandDir.filter(f => f.isDirectory());
+        const parentCommandFile = parentCommandDir.find(f => f.isFile());
+
+        assert(
+            parentCommandDir.length === 2 &&
+            subcommandDirs.length === 1 &&
+            parentCommandFile &&
+            this.isJsFile(parentCommandFile) &&
+            subcommandDirs[0].name === "subcommands",
+            color(
+                c => c.redBright`A parent command must contain a file, and a folder named 'subcommands'.`
+            )
+        );
+
+        const parentCommand = await this.import<Command>(
+            path.join(this.path, commandFile.name, parentCommandFile.name)
+        );
+
+        assert(
+            !this.has(parentCommand.builder.name),
+            color(
+                c => c.redBright`Command`,
+                c => c.cyanBright`[${parentCommand.builder.name}]`,
+                c => c.redBright`already exists.`
+            )
+        );
+
+        const subcommandDir = await fs.readdir(
+            path.join(this.path, commandFile.name, "subcommands"),
+            { withFileTypes: true },
+        );
+
+        // import all subcommands in the folder and map into a collection
+        const subcommands = (
+            await Promise.all(subcommandDir
+                .filter(f => this.isJsFile(f))
+                .map(subcommandFile => this.importSubcommand(
+                    parentCommand,
+                    path.join(this.path, commandFile.name, "subcommands", subcommandFile.name)
+                ))
+            )
+        ).reduce(
+            (coll, subcommand) => {
+                assert(
+                    !coll.has(subcommand.builder.name),
+                    color(
+                        c => c.redBright`Subcommand`,
+                        c => c.cyanBright`[${subcommand.builder.name}]`,
+                        c => c.redBright`already exists in command`,
+                        c => c.cyanBright`[${parentCommand.builder.name}]`,
+                        c => c.redBright`.`
+                    )
+                );
+
+                for (const Guard of subcommand.guards ?? []) {
+                    const guard = new Guard();
+
+                    assert(
+                        guard.slashRun,
+                        color(
+                            c => c.redBright`Guard`,
+                            c => c.cyanBright`[${guard.name}]`,
+                            c => c.redBright`must have a`,
+                            c => c.cyanBright`[slashRun]`,
+                            c => c.redBright`method for command`,
+                            c => c.cyanBright`[${parentCommand.builder.name}-${subcommand.builder.name}]`,
+                            c => c.redBright`.`
+                        )
+                    );
+                }
+
+                return coll.set(subcommand.builder.name, subcommand);
+            },
+            new Collection<string, Subcommand>()
+        );
+
+        Reflect.set(parentCommand, "subcommands", subcommands);
+        this.set(parentCommand.builder.name, parentCommand);
+    }
+
+    public async register() {
+        assert(
+            process.env.NODE_ENV === "development" || process.env.NODE_ENV === "production",
+            color(
+                c => c.redBright`Unrecognized NODE_ENV value. Must be either:`,
+                c => c.cyanBright`'development'`,
+                c => c.redBright`or`,
+                c => c.cyanBright`'production'`,
+                c => c.redBright`.`
+            )
+        );
+
+        await this.cleanGuildCommands();
 
         const spinner = ora({
-            text: colorize(c => c.cyanBright`Registering application commands...`),
+            text: color(c => c.cyanBright`Registering application commands...`),
         }).start();
 
-        const dirPath = path.join(this.importPath, `./interactions/commands`);
-        const commandDir = await fs.readdir(dirPath, { withFileTypes: true });
+        const commandDir = await fs.readdir(this.path, { withFileTypes: true });
 
         for (const commandFile of commandDir) {
-            // is subcommand
+            // has subcommands
             if (commandFile.isDirectory()) {
-                const parentCommandDir = await fs.readdir(path.join(dirPath, commandFile.name), {
-                    withFileTypes: true,
-                });
-
-                const subcommandDirs = parentCommandDir.filter(f => f.isDirectory());
-                const parentCommandFile = parentCommandDir.find(f => f.isFile());
-
-                assert(
-                    parentCommandDir.length === 2 &&
-                    subcommandDirs.length === 1 &&
-                    parentCommandFile &&
-                    this.isValidFile(parentCommandFile) &&
-                    subcommandDirs[0].name === "subcommands",
-                    colorize(
-                        c => c.redBright`A parent command must be a folder that contains a file with the command's name and a 'subcommands' folder.`
-                    )
-                );
-
-                const parentCommand = await this.import<Command>(
-                    path.join(
-                        dirPath,
-                        commandFile.name,
-                        parentCommandFile.name
-                    )
-                );
-
-                assert(
-                    !parentCommand.isContextMenuCommand(),
-                    colorize(c => c.redBright`A parent command cannot be a context menu command.`),
-                );
-                assert(
-                    !parentCommand.options.args || parentCommand.options.args.length === 0,
-                    colorize(c => c.redBright`A parent command cannot have arguments.`),
-                );
-
-                const subcommandDir = await fs.readdir(
-                    path.join(
-                        dirPath,
-                        commandFile.name,
-                        parentCommandDir.find(f => f.isDirectory())!.name
-                    ),
-                    { withFileTypes: true }
-                );
-
-                // import all subcommands in the folder and map into a collection
-                const subcommands = (
-                    await Promise.all(subcommandDir
-                        .filter(d => this.isValidFile(d))
-                        .map(subcommandFile => this.importSubcommand(
-                            parentCommand,
-                            path.join(dirPath, commandFile.name, "subcommands", subcommandFile.name)
-                        ))
-                    )
-                ).reduce(
-                    (coll, sc) => coll.set(sc.options.name, sc),
-                    new Collection<string, Subcommand>()
-                );
-
-                Reflect.set(parentCommand.options, "subcommands", subcommands);
-                this.set(parentCommand.options.name, parentCommand);
+                await this.registerCommandWithSubcommands(commandFile);
                 continue;
             }
 
-            if (!this.isValidFile(commandFile)) continue;
+            if (!this.isJsFile(commandFile)) continue;
 
-            const route = path.join(dirPath, commandFile.name);
-            const command = await this.import<Command>(route);
+            const command = await this.import<Command>(path.join(this.path, commandFile.name));
 
             assert(
-                !this.has(command.options.name),
-                colorize(
-                    c => c.redBright("Command"),
-                    c => c.cyanBright(`[${command.options.name}]`),
-                    c => c.redBright("already exists."),
+                !this.has(command.builder.name),
+                color(
+                    c => c.redBright`Command`,
+                    c => c.cyanBright`[${command.builder.name}]`,
+                    c => c.redBright`already exists.`
                 )
             );
 
-            for (const GuardFactory of command.options.guards ?? []) {
-                const guard = new GuardFactory();
+            for (const Guard of command.guards ?? []) {
+                const guard = new Guard();
 
                 if (command.isSlashCommand()) {
                     assert(
                         guard.slashRun,
-                        colorize(
-                            c => c.redBright("Guard"),
-                            c => c.cyanBright(`[${guard.options.name}]`),
-                            c => c.redBright("must have a"),
-                            c => c.cyanBright("[slashRun]"),
-                            c => c.redBright("method for command"),
-                            c => c.cyanBright(`[${command.options.name}]`),
-                            c => c.redBright("."),
+                        color(
+                            c => c.redBright`Guard`,
+                            c => c.cyanBright`[${guard.name}]`,
+                            c => c.redBright`must have a`,
+                            c => c.cyanBright`[slashRun]`,
+                            c => c.redBright`method for command`,
+                            c => c.cyanBright`[${command.builder.name}]`,
+                            c => c.redBright`.`
                         )
-                    );
-                }
-
-                if (command.isMessageCommand()) {
-                    assert(
-                        guard.messageRun,
-                        colorize(
-                            c => c.redBright("Guard"),
-                            c => c.cyanBright(`[${guard.options.name}]`),
-                            c => c.redBright("must have a"),
-                            c => c.cyanBright("[messageRun]"),
-                            c => c.redBright("method for command"),
-                            c => c.cyanBright(`[${command.options.name}]`),
-                            c => c.redBright("."),
-                        )
-                    );
-                }
-
-                if (command.isContextMenuCommand()) {
-                    assert(
-                        guard.contextMenuRun,
-                        colorize(
-                            c => c.redBright("Guard"),
-                            c => c.cyanBright(`[${guard.options.name}]`),
-                            c => c.redBright("must have a"),
-                            c => c.cyanBright("[contextMenuRun]"),
-                            c => c.redBright("method for command"),
-                            c => c.cyanBright(`[${command.options.name}]`),
-                            c => c.redBright("."),
-                        )
-                    );
-
-                    assert(
-                        command.options.contextMenuType,
-                        colorize(
-                            c => c.redBright`Context command ${command.options.name} must have a contextMenuType.`
-                        ),
                     );
                 }
             }
 
-            this.set(command.options.name, command);
+            this.set(command.builder.name, command);
         }
 
-        const slashCommands = this.filter(command => command.isSlashCommand());
-        const cmCommands = this.filter(command => command.isContextMenuCommand());
+        const slashCommands = this.filter(command => command.isSlashCommand(), this);
 
         assert(
             slashCommands.size <= 100,
-            colorize(
-                c => c.redBright`You can only have 100 chat input commands per application.`
-            )
-        );
-        assert(
-            cmCommands.size <= 10,
-            colorize(
-                c => c.redBright.bold(cmCommands.size),
-                c => c.redBright`/10 context menu commands registered.`,
-            )
+            color(c => c.redBright`You can only have 100 chat input commands per application.`)
         );
 
-        const [userCmCommands, messageCmCommands] = cmCommands
-            .filter(c => !!c.options.contextMenuType)
-            .partition(c => c.options.contextMenuType === "user");
+        if (process.env.NODE_ENV === "development") {
+            assert(this.devGuildIds.length, color(c => c.redBright`No development guild IDs provided.`));
 
-        assert(
-            userCmCommands.size <= 5,
-            colorize(
-                c => c.redBright.bold(userCmCommands.size),
-                c => c.redBright("/5 user context menu commands registered.")
-            )
-        );
-        assert(
-            messageCmCommands.size <= 5,
-            colorize(
-                c => c.redBright.bold(messageCmCommands.size),
-                c => c.redBright("/5 message context menu commands registered.")
-            )
-        );
-
-        if (devGuildIds && devGuildIds.length > 0) {
-            assert(
-                process.env.NODE_ENV === "development",
-                colorize(
-                    c => c.redBright`You've specified guild IDs for development, but you're not in development mode. Make sure that the 'NODE_ENV' variable in your .env commandFile is set to 'development'.`
-                ),
-            );
-
-            for (const [index, guildId] of devGuildIds.entries()) {
-                const route = Routes.applicationGuildCommands(process.env.DISCORD_APP_ID!, guildId);
-                await this.rest.put(route, {
+            for (const [index, guildId] of this.devGuildIds.entries()) {
+                const route = Routes.applicationGuildCommands(process.env.CLIENT_ID!, guildId);
+                await this.discordApi.put(route, {
                     body: [
-                        ...slashCommands.map(command => command.buildSlash().toJSON()),
-                        // ...cmCommands.map(command => command.buildContextMenu().toJSON()),
+                        ...slashCommands.map(command => command.builder.toJSON()),
                     ],
                 });
-                spinner.text = `Registering commands in ${guildId}... (${index + 1}/${devGuildIds.length})`;
+                spinner.text = `Registering commands in guild ID [${guildId}]... (${index + 1}/${this.devGuildIds.length})`;
             }
 
             spinner.succeed(
-                colorize(
-                    c => c.greenBright`Registered`,
-                    c => c.greenBright.bold(slashCommands.size),
-                    c => c.greenBright`slash ${slashCommands.size === 1 ? "command" : "commands"} and`,
-                    c => c.greenBright.bold(cmCommands.size),
-                    c => c.greenBright`context menu ${cmCommands.size === 1 ? "command" : "commands"} for`,
-                    c => c.greenBright.bold(devGuildIds.length),
-                    c => c.greenBright`development ${devGuildIds.length !== 1 ? "guilds" : "guild"}!`
+                color(
+                    c => c.green`Registered`,
+                    c => c.greenBright.bold`${slashCommands.size}`,
+                    c => c.green`slash ${slashCommands.size === 1 ? "command" : "commands"}`,
+                    c => c.green`for`,
+                    c => c.greenBright.bold`${this.devGuildIds.length}`,
+                    c => c.green`development ${this.devGuildIds.length === 1 ? "guild" : "guilds"}!`
                 )
             );
+
             return;
         }
 
-        assert(
-            process.env.NODE_ENV === "production",
-            colorize(
-                c => c.redBright`You're not in production mode. Make sure that NODE_ENV in .env is set to 'production', OR add guild IDs in Hyperion's options.`
-            )
-        );
+        const route = Routes.applicationCommands(process.env.CLIENT_ID!);
 
-        const route = Routes.applicationCommands(process.env.DISCORD_APP_ID!);
-
-        await this.rest.put(route, {
+        await this.discordApi.put(route, {
             body: [
-                ...slashCommands.map(command => command.buildSlash().toJSON()),
-                // ...cmCommands.map(command => command.buildContextMenu().toJSON()),
+                ...slashCommands.map(command => command.builder.toJSON()),
             ],
         });
 
         spinner.succeed(`Registered global application commands!`);
-
-        this.registerMessageCommands();
     }
 
-    public getMessageCommand(name: string) {
-        return this.messageCommands.get(name)
-            ?? this.messageCommands.find(cmd => !!cmd.options.aliases?.includes(name));
-    }
-
-    private registerMessageCommands() {
+    private async cleanGuildCommands() {
         const spinner = ora({
-            text: colorize(c => c.cyanBright`Registering message commands...`),
-        }).start();
-
-        for (const [name, cmd] of this.filter(cmd => cmd.isMessageCommand())) {
-            Reflect.set(cmd, "builder", cmd.buildMessage());
-
-            this.messageCommands.set(name, cmd);
-
-            if (!cmd.options.aliases) continue;
-
-            for (const alias of cmd.options.aliases) {
-                if (this.messageCommands.has(alias)) {
-                    spinner.fail();
-                    throw new HyperionError(e => e.DuplicateMessageCommandAlias, name, alias);
-                }
-
-                this.messageCommands.set(alias, cmd);
-            }
-        }
-
-        spinner.succeed(`Registered ${this.messageCommands.size} message commands!`);
-    }
-
-    private async cleanGuildCommands(guildIds: string[]) {
-        const spinner = ora({
-            text: colorize(c => c.cyanBright`Cleaning guild application commands...`),
+            text: color(c => c.cyanBright`Cleaning guild application commands...`),
         });
 
-        for (const guildId of guildIds) {
-            const [err, commands] = await _.try(() =>
-                this.rest.get(Routes.applicationGuildCommands(process.env.DISCORD_APP_ID!, guildId))
-            )();
+        for (const guildId of this.devGuildIds) {
+            const [error, commands] = await tryit(() => this.discordApi.get(
+                Routes.applicationGuildCommands(process.env.CLIENT_ID!, guildId)
+            ))();
 
-            if (err) {
+            if (error) {
                 spinner.fail(
-                    colorize(c => c.redBright`Failed to get commands in guild ID [${guildId}].`)
+                    color(
+                        c => c.redBright`Failed to get commands in guild ID`,
+                        c => c.cyanBright`[${guildId}]`,
+                    )
                 );
-                console.error(err);
-                continue;
+                throw new HyperionError(e => e.FailedToGetGuildCommands(guildId), error);
             }
 
             for (const command of commands as ApplicationCommand[]) {
-                const [err] = await _.try(() =>
-                    this.rest.delete(
-                        Routes.applicationGuildCommand(
-                            process.env.DISCORD_APP_ID!,
-                            guildId,
-                            command.id
-                        )
+                const [error] = await tryit(() => this.discordApi.delete(
+                    Routes.applicationGuildCommand(
+                        process.env.CLIENT_ID!,
+                        guildId,
+                        command.id,
                     )
-                )();
+                ))();
 
-                if (err) {
+                if (error) {
                     spinner.fail(
-                        colorize(c => c.redBright`Failed to delete command`, 
-                            c => c.redBright.bold`[${command.name}]`,
-                            c => c.redBright`in guild ID [${guildId}].`
-                        ),
+                        color(
+                            c => c.redBright`Failed to delete command`,
+                            c => c.cyanBright`[${command.name}]`,
+                            c => c.redBright`in guild ID`,
+                            c => c.cyanBright`[${guildId}]`,
+                            c => c.redBright`.`
+                        )
                     );
-                    throw new HyperionError(e => e.DeleteGuildCommandsFail, guildId);
+                    throw new HyperionError(e => e.FailedToDeleteGuildCommands(guildId), error);
                 }
             }
         }
@@ -367,6 +289,6 @@ export class CommandRegistry extends Registry<Command> {
     }
 }
 
-export type CommandRegistryOptions = {
-    cleanLeftover?: boolean;
-};
+export interface CommandRegistryOptions {
+    devGuildIds: string[];
+}

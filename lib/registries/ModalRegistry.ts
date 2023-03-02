@@ -1,34 +1,56 @@
+import { Registry } from "./Registry";
+import type { Modal } from "../structs/";
 import fs from "node:fs/promises";
 import path from "node:path";
+import chalk from "chalk";
 import ora from "ora";
+import { color } from "../utils";
 
-import { Modal } from "../structures/interaction/component/modal";
-import { colorize } from "../util/colorize";
-import { Registry } from "./Registry";
+export class ModalRegistry extends Registry<string, Modal> {
+    public constructor() {
+        super(`interactions/modals`);
+    }
 
-export class ModalRegistry extends Registry<Modal> {
     public async register() {
         const spinner = ora({
-            text: colorize(c => c.cyanBright`Registering modals...`),
+            text: chalk.cyanBright`Registering modals...`,
         }).start();
 
-        const dirPath = path.join(this.importPath, `./interactions/modals`);
-        const files = await fs.readdir(dirPath, { withFileTypes: true });
+        const modalDir = await fs.readdir(this.path, { withFileTypes: true });
 
-        for (const file of files) {
-            if (!this.isValidFile(file)) continue;
+        for (const modalFile of modalDir) {
+            if (!this.isJsFile(modalFile)) continue;
 
-            const route = path.join(dirPath, file.name);
-            const modal = await this.import<Modal>(route);
+            const modal = await this.import<Modal>(path.join(this.path, modalFile.name));
+            const modalId = modal.id ?? modalFile.name;
 
-            this.set(modal.options.id, modal);
+            modal.builder.setCustomId(modalId);
+
+            // for (const Guard of modal.guards ?? []) {
+            //     const guard = new Guard();
+            //
+            //     assert(
+            //         guard.modalRun,
+            //         color(
+            //             c => c.redBright`Guard`,
+            //             c => c.cyanBright`[${guard.name}]`,
+            //             c => c.redBright`must have a`,
+            //             c => c.cyanBright`[modalRun]`,
+            //             c => c.redBright`method for modal`,
+            //             c => c.cyanBright`[${modalId}]`,
+            //             c => c.redBright`.`
+            //         )
+            //     );
+            // }
+
+            this.set(modal.id ?? modalFile.name, modal);
         }
 
         spinner.succeed(
-            colorize(
+            color(
                 c => c.greenBright`Registered`,
                 c => c.greenBright.bold(this.size),
-                c => c.greenBright`${this.size === 1 ? "modal" : "modals"}!`,
+                c => c.greenBright`modals!`
             )
         );
     }

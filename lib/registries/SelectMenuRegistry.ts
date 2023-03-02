@@ -1,52 +1,57 @@
-import assert from "node:assert/strict";
-import fs from "node:fs/promises";
+import { Registry } from "./Registry";
+import type { SelectMenu } from "../structs";
 import ora from "ora";
-import path from "path";
+import chalk from "chalk";
+import fs from "node:fs/promises";
+import path from "node:path";
+import assert from "node:assert/strict";
+import { color } from "../utils";
 
-import { SelectMenu } from "../structures/interaction/component";
-import { colorize } from "../util/colorize";
-import { Registry } from "./";
+export class SelectMenuRegistry extends Registry<string, SelectMenu> {
+    public constructor() {
+        super(`interactions/select-menus`);
+    }
 
-export class SelectMenuRegistry extends Registry<SelectMenu> {
     public async register() {
         const spinner = ora({
-            text: colorize(c => c.cyanBright`Registering select menus...`),
+            text: chalk.cyanBright`Registering select menus...`,
         }).start();
 
-        const dirPath = path.join(this.importPath, `./interactions/select-menus`);
-        const files = await fs.readdir(dirPath, { withFileTypes: true });
+        const selectMenuDir = await fs.readdir(this.path, { withFileTypes: true });
 
-        for (const file of files) {
-            if (!this.isValidFile(file)) continue;
+        for (const selectMenuFile of selectMenuDir) {
+            if (!this.isJsFile(selectMenuFile)) continue;
 
-            const route = path.join(dirPath, file.name);
-            const selectMenu = await this.import<SelectMenu>(route);
+            const selectMenu = await this.import<SelectMenu>(path.join(this.path, selectMenuFile.name));
+            const selectMenuId = selectMenu.id ?? selectMenuFile.name;
 
-            for (const GuardFactory of selectMenu.options.guards ?? []) {
-                const guard = new GuardFactory();
+            selectMenu.builder.setCustomId(selectMenuId);
+
+            for (const Guard of selectMenu.guards ?? []) {
+                const guard = new Guard();
 
                 assert(
                     guard.selectMenuRun,
-                    colorize(
+                    color(
                         c => c.redBright`Guard`,
-                        c => c.cyanBright`[${guard.options.name}]`,
+                        c => c.cyanBright`[${guard.name}]`,
                         c => c.redBright`must have a`,
                         c => c.cyanBright`[selectMenuRun]`,
-                        c => c.redBright`method for select menu`,
-                        c => c.cyanBright`[${selectMenu.options.id}]`,
-                        c => c.redBright`.`,
+                        c => c.redBright`method for selectMenu`,
+                        c => c.cyanBright`[${selectMenuId}]`,
+                        c => c.redBright`.`
                     )
                 );
             }
 
-            this.set(selectMenu.options.id, selectMenu);
+            this.set(selectMenu.id ?? selectMenuFile.name, selectMenu);
         }
 
         spinner.succeed(
-            colorize(
+            color(
                 c => c.greenBright`Registered`,
                 c => c.greenBright.bold(this.size),
-                c => c.greenBright`select ${this.size !== 1 ? "menus" : "menu"}!`,
+                c => c.greenBright`selectMenus!`
             )
         );
     }

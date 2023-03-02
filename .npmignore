@@ -1,4 +1,7 @@
-bot/
-assets/
-lib/
 node_modules/
+.idea/
+assets/
+.eslintrc.json
+.gitignore
+pnpm-lock.yaml
+tsconfig.json

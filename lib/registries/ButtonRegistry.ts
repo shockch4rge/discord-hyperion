@@ -1,57 +1,57 @@
-import assert from "node:assert/strict";
+import { Registry } from "./Registry";
+import type { Button } from "../structs/";
 import fs from "node:fs/promises";
+import path from "node:path";
+import chalk from "chalk";
 import ora from "ora";
-import path from "path";
+import assert from "node:assert/strict";
+import { color } from "../utils";
 
-import { HyperionClient } from "../HyperionClient";
-import { Button } from "../structures/interaction/component";
-import { colorize } from "../util/colorize";
-import { Registry } from "./";
-
-export class ButtonRegistry extends Registry<Button> {
-    public constructor(client: HyperionClient) {
-        super(client);
+export class ButtonRegistry extends Registry<string, Button> {
+    public constructor() {
+        super(`interactions/buttons`);
     }
 
     public async register() {
         const spinner = ora({
-            text: colorize(c => c.greenBright("Registering buttons...")),
+            text: chalk.cyanBright`Registering buttons...`,
         }).start();
 
-        const dirPath = path.join(this.importPath, `./interactions/buttons`);
-        const files = await fs.readdir(dirPath, { withFileTypes: true });
+        const buttonDir = await fs.readdir(this.path, { withFileTypes: true });
 
-        for (const file of files) {
-            if (!this.isValidFile(file)) continue;
+        for (const buttonFile of buttonDir) {
+            if (!this.isJsFile(buttonFile)) continue;
 
-            const route = path.join(dirPath, file.name);
-            const button = await this.import<Button>(route);
+            const button = await this.import<Button>(path.join(this.path, buttonFile.name));
+            const buttonId = button.id ?? buttonFile.name;
 
-            for (const GuardFactory of button.options.guards ?? []) {
-                const guard = new GuardFactory();
+            button.builder.setCustomId(buttonId);
+
+            for (const Guard of button.guards ?? []) {
+                const guard = new Guard();
 
                 assert(
                     guard.buttonRun,
-                    colorize(
-                        c => c.redBright("Guard"),
-                        c => c.cyanBright(`[${guard.options.name}]`),
-                        c => c.redBright("must have a"),
-                        c => c.cyanBright("[buttonRun]"),
-                        c => c.redBright("method for button"),
-                        c => c.cyanBright(`'${button.options.id}'`),
-                        c => c.redBright("."),
-                    ),
+                    color(
+                        c => c.redBright`Guard`,
+                        c => c.cyanBright`[${guard.name}]`,
+                        c => c.redBright`must have a`,
+                        c => c.cyanBright`[buttonRun]`,
+                        c => c.redBright`method for button`,
+                        c => c.cyanBright`[${buttonId}]`,
+                        c => c.redBright`.`
+                    )
                 );
             }
 
-            this.set(button.options.id, button);
+            this.set(button.id ?? buttonFile.name, button);
         }
 
         spinner.succeed(
-            colorize(
-                c => c.greenBright("Registered"),
+            color(
+                c => c.greenBright`Registered`,
                 c => c.greenBright.bold(this.size),
-                c => c.greenBright("buttons!"),
+                c => c.greenBright`buttons!`
             )
         );
     }

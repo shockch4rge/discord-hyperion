@@ -1,13 +1,14 @@
 {
     "compilerOptions": {
         "target": "esnext",
+        "lib": ["esnext"],
+        "module": "commonjs",
+        "moduleResolution": "node",
+        "isolatedModules": false,
+        "esModuleInterop": true,
         "allowSyntheticDefaultImports": true,
         "forceConsistentCasingInFileNames": true,
         "declaration": true,
-        "isolatedModules": false,
-        "module": "commonjs",
-        "moduleResolution": "node",
-        "esModuleInterop": true,
         "importHelpers": true,
         "preserveConstEnums": true,
         "strict": true,
@@ -27,11 +28,13 @@
         "strictBindCallApply": true,
         "useUnknownInCatchVariables": true,
         "experimentalDecorators": true,
-        "outDir": "dist"
+        "emitDecoratorMetadata": true,
+        "outDir": "dist",
     },
     "exclude": [
         "**/*.test.*",
         "**/*.spec.*",
-        "./bot/**"
+        "dist",
+        "assets"
     ]
 }

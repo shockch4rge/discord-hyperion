@@ -4,10 +4,14 @@
         "es2022": true,
         "node": true
     },
+    "plugins": [
+        "@typescript-eslint"
+    ],
     "extends": [
         "eslint:recommended",
         "plugin:@typescript-eslint/recommended"
     ],
+    "ignorePatterns": ["node_modules/", "dist/"],
     "overrides": [],
     "parser": "@typescript-eslint/parser",
     "parserOptions": {
@@ -17,16 +21,9 @@
             "./tsconfig.json"
         ]
     },
-    "plugins": [
-        "@typescript-eslint"
-    ],
     "rules": {
         /* TSLint */
-        // if we use an explicit `any`, it's probably for a good reason
-        "@typescript-eslint/no-explicit-any": "off",
-        "@typescript-eslint/no-non-null-assertion": "off",
-        "@typescript-eslint/no-empty-function": "off",
-        "@typescript-eslint/no-throw-literal": "warn",
+        "@typescript-eslint/consistent-type-imports": "error",
         "@typescript-eslint/consistent-generic-constructors": [
             "warn",
             "constructor"
@@ -53,8 +50,6 @@
                 "allowIndexSignaturePropertyAccess": true
             }
         ],
-        "@typescript-eslint/no-confusing-non-null-assertion": "warn",
-        "@typescript-eslint/no-array-constructor": "error",
         "@typescript-eslint/member-delimiter-style": "error",
         "@typescript-eslint/method-signature-style": [
             "warn",
@@ -67,6 +62,13 @@
                 "ignoreVoidOperator": true
             }
         ],
+        "@typescript-eslint/no-confusing-non-null-assertion": "warn",
+        "@typescript-eslint/no-array-constructor": "error",
+        // if we use an explicit `any`, it's probably for a good reason
+        "@typescript-eslint/no-explicit-any": "off",
+        "@typescript-eslint/no-non-null-assertion": "off",
+        "@typescript-eslint/no-empty-function": "off",
+        "@typescript-eslint/no-throw-literal": "warn",
         "@typescript-eslint/no-dynamic-delete": "error",
         // wtf?
         "@typescript-eslint/no-extra-non-null-assertion": "error",
@@ -115,6 +117,7 @@
                 "exceptAfterSingleLine": true
             }
         ],
+        "@typescript-eslint/object-curly-spacing": "off",
         /* */
         /* ESLint */
         "indent": [
@@ -143,42 +146,21 @@
             "warn"
         ],
         "guard-for-in": "error",
-        "new-cap": [
-            "warn",
-            {
-                "newIsCap": true,
-                "capIsNew": true
-            }
-        ],
-        // compatibility with @typescript-eslint/lines-between-class-members
+        "new-cap": "off",
         "lines-between-class-members": "off",
-        // compatibility with @typescript-eslint/comma-spacing
         "comma-spacing": "off",
-        // compatibility with @typescript-eslint/brace-style
         "brace-style": "off",
-        // compatibility with @typescript-eslint/semi
         "semi": "off",
-        // compatibility with @typescript-eslint/no-array-constructor
         "no-array-constructor": "off",
-        // compatibility with @typescript-eslint/no-invalid-this
         "no-invalid-this": "off",
-        // compatibility with @typescript-eslint/no-loop-type
         "no-loop-func": "off",
-        // compatibility with @typescript-eslint/no-extra-parens
         "no-extra-parens": "off",
-        // compatibility with @typescript-eslint/no-extra-semi
         "no-extra-semi": "off",
-        // compatibility with @typescript-eslint/no-empty-function
         "no-empty-function": "off",
-        // compatibility with @typescript-eslint/no-magic-numbers
         "no-magic-numbers": "off",
-        // compatibility with @typescript-eslint/dot-notation
         "dot-notation": "off",
-        // compatibility with @typescript-eslint/no-throw-literal
         "no-throw-literal": "off",
-        // compatibility with @typescript-eslint/no-return-awaitx
         "no-promise-executor-return": "error",
-        // don't really know how to configure this yet so imma keep it off
         "no-mixed-spaces-and-tabs": "off",
         "no-prototype-builtins": "off",
         "no-return-await": "off",
@@ -206,6 +188,10 @@
         "prefer-rest-params": "error",
         "prefer-spread": "error",
         "yoda": "error",
+        "object-curly-spacing": [
+            "error",
+            "always"
+        ],
         "arrow-parens": [
             "error",
             "as-needed"

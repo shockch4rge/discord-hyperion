@@ -1,42 +1,69 @@
 import { Collection } from "discord.js";
-import assert from "node:assert/strict";
-import { Dirent } from "node:fs";
 import path from "node:path";
+import assert from "node:assert/strict";
+import type { Dirent } from "fs";
+import { color, isConstructor } from "../utils";
 
-import { HyperionClient } from "../HyperionClient";
-import { colorize } from "../util/colorize";
-import { isConstructor } from "../util/types";
+export abstract class Registry<K extends string, V> extends Collection<K, V> {
+    public readonly path: string;
 
-export abstract class Registry<T> extends Collection<string, T> {
-    public readonly importPath: string;
-
-    public constructor(public readonly client: HyperionClient) {
+    protected constructor(pathExt: string) {
         super();
-        this.importPath = path.join(process.cwd(), "./bot/src");
+        this.path = path.join(process.cwd(), `src`, pathExt);
     }
 
-    protected async import<T>(path: string) {
-        // commonjs 'dynamic imports' return an object
-        const [Class] = Object.values((await import(path)) as Record<string, new () => T>);
+    protected async import<As>(path: string) {
+        const Class = (await import(path)).default as new () => As;
 
-        const shortPath = path
+        const truncatedPath = path
             .match(/(?<=src).*/)?.[0]
             .replaceAll(/\\/g, "/")
             .replace(/^/, "....") ?? path;
 
         assert(
             isConstructor(Class),
-            colorize(
-                c => c.redBright`An event class was not exported at`,
-                c => c.cyanBright(shortPath),
-            )
+            color(
+                c => c.redBright`A class was not exported at:`,
+                c => c.cyanBright(truncatedPath),
+            ),
         );
 
         return new Class();
     }
 
-    protected isValidFile(file: Dirent) {
-        return file.isFile() && file.name.endsWith(".ts") || file.name.endsWith(".js");
+    /**
+     * Similar to {@link Collection.get()} and {@link Collection.ensure()},
+     * but throws an error if the supplied key doesn't exist. Use with caution.
+     * @param key
+     */
+    public require(key: K) {
+        const value = this.get(key);
+
+        if (!value) {
+            throw new Error(`Required key '${key}' not found in ${this.constructor.name}`);
+        }
+
+        return value;
+    }
+
+    /**
+     * Similar to {@link Collection.map()}, but includes the key index as the second parameter.
+     * @param fn
+     */
+    public mapWithIndex<U>(fn: (value: V, index: number, key: K) => U) {
+        return Array.from(this.values()).map((val, i) => fn(val, i, this.keyAt(i)!));
+    }
+
+    /**
+     * Returns the value at the specified index. Similar to {@link Array.findIndex()}.
+     * @param predicate
+     */
+    public findIndex(predicate: (value: V, index: number) => boolean) {
+        return Array.from(this.values()).findIndex(predicate);
+    }
+
+    protected isJsFile(file: Dirent) {
+        return file.isFile() && (file.name.endsWith(".ts") || file.name.endsWith(".js"));
     }
 
     public abstract register(): Promise<void>;

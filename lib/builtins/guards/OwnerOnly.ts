@@ -1,27 +1,21 @@
-import {
-    BaseMessageCommandContext, BaseSlashCommandContext
-} from "../../../lib/structures/context";
-import { Guard } from "../../../lib/structures/Guard";
+import type { BaseSlashCommandContext } from "../../structs";
+import { Guard } from "../../structs";
 
-export class OwnerOnly extends Guard {
+export default class extends Guard {
     constructor() {
         super({
-            name: "OwnerOnly",
-            message: "You must be the owner of the bot to use this command.",
+            name: "owner-only",
+            description: "Restricts usage of this interaction to the owner of the bot.",
         });
     }
 
-    public async slashRun(context: BaseSlashCommandContext) {
-        return context.client.options.ownerIds.includes(context.interaction.user.id);
+    async slashRun(context: BaseSlashCommandContext) {
+        return context.client.ownerIds.includes(context.user.id);
     }
 
-    public async onSlashFail(context: BaseSlashCommandContext) {
-        await context.reply({
-            content: this.options.message,
-        });
-    }
-
-    public async messageRun(context: BaseMessageCommandContext) {
-        return context.client.options.ownerIds.includes(context.message.author.id);
+    async slashFail(context: BaseSlashCommandContext) {
+        await context.reply(
+            e => e.setAuthor({ name: `❌  This command can only be used by ${context.client.name}'s owner.` })
+        );
     }
 }
