@@ -9,12 +9,10 @@ import type { BaseSelectMenuContext } from "../contexts";
 import type { Guard } from "../Guard";
 
 export abstract class SelectMenu {
-    public readonly id: string;
     public readonly builder: AnySelectMenuBuilder;
     public readonly guards?: Guard[];
 
     protected constructor(options: SelectMenuOptions) {
-        this.id = options.id!;
         this.builder = options.builder;
         this.guards = options.guards;
     }
@@ -23,7 +21,6 @@ export abstract class SelectMenu {
 }
 
 export type SelectMenuOptions = {
-    id?: string;
     builder: AnySelectMenuBuilder;
     guards?: Guard[];
 };

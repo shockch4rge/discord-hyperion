@@ -23,7 +23,7 @@ export class SelectMenuRegistry extends Registry<string, SelectMenu> {
             if (!this.isJsFile(selectMenuFile)) continue;
 
             const selectMenu = await this.import<SelectMenu>(path.join(this.path, selectMenuFile.name));
-            const selectMenuId = selectMenu.id ?? selectMenuFile.name;
+            const selectMenuId = selectMenu.builder.data.custom_id ?? selectMenuFile.name;
 
             selectMenu.builder.setCustomId(selectMenuId);
 
@@ -42,7 +42,7 @@ export class SelectMenuRegistry extends Registry<string, SelectMenu> {
                 );
             }
 
-            this.set(selectMenu.id ?? selectMenuFile.name, selectMenu);
+            this.set(selectMenuId, selectMenu);
         }
 
         spinner.succeed(

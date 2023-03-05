@@ -6,6 +6,7 @@ import chalk from "chalk";
 import ora from "ora";
 import assert from "node:assert/strict";
 import { color } from "../utils";
+import { ButtonStyle, ComponentType } from "discord.js";
 
 export class ButtonRegistry extends Registry<string, Button> {
     public constructor(client: HyperionClient) {
@@ -23,9 +24,12 @@ export class ButtonRegistry extends Registry<string, Button> {
             if (!this.isJsFile(buttonFile)) continue;
 
             const button = await this.import<Button>(path.join(this.path, buttonFile.name));
-            const buttonId = button.id ?? buttonFile.name;
+            const buttonId = button.getId() ?? buttonFile.name;
 
-            button.builder.setCustomId(buttonId);
+            // if the button isn't a link button, it must have a custom id
+            if (button.builder.data.style !== ButtonStyle.Link) {
+                button.builder.setCustomId(buttonId);
+            }
 
             for (const guard of button.guards ?? []) {
                 assert(
@@ -42,7 +46,7 @@ export class ButtonRegistry extends Registry<string, Button> {
                 );
             }
 
-            this.set(button.id ?? buttonFile.name, button);
+            this.set(buttonId, button);
         }
 
         spinner.succeed(

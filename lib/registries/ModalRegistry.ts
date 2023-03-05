@@ -1,6 +1,5 @@
 import { Registry } from "./Registry";
-import type { Modal } from "../structs/";
-import type { HyperionClient } from "../structs/";
+import type { HyperionClient, Modal } from "../structs/";
 import fs from "node:fs/promises";
 import path from "node:path";
 import chalk from "chalk";
@@ -23,7 +22,7 @@ export class ModalRegistry extends Registry<string, Modal> {
             if (!this.isJsFile(modalFile)) continue;
 
             const modal = await this.import<Modal>(path.join(this.path, modalFile.name));
-            const modalId = modal.id ?? modalFile.name;
+            const modalId = modal.builder.data.custom_id ?? modalFile.name;
 
             modal.builder.setCustomId(modalId);
 
@@ -44,7 +43,7 @@ export class ModalRegistry extends Registry<string, Modal> {
             //     );
             // }
 
-            this.set(modal.id ?? modalFile.name, modal);
+            this.set(modalId ?? modalFile.name, modal);
         }
 
         spinner.succeed(
