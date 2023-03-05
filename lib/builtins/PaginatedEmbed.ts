@@ -94,24 +94,32 @@ class Help extends SharedPaginatedEmbedMethods {
             .setStyle(ButtonStyle.Secondary)
             .setDisabled(this.onFirstPage),
 
-        commandSelect: () => new StringSelectMenuBuilder()
-            .setCustomId(this.componentIds.commandSelect)
-            .addOptions(
-                this.context.client.commands.mapWithIndex((command, index) => ({
-                    label: command.builder.name,
-                    value: command.builder.name,
-                    description: command.builder.description,
-                    emoji: buildNumberEmoji(index),
-                }))
-            )
-            .setPlaceholder("Select a command!"),
+        commandSelect: () => {
+            const commands = Help.filterHiddenCommands(this.context, this.options);
+            const keys = Array.from(commands.keys());
+
+            return new StringSelectMenuBuilder()
+                .setCustomId(this.componentIds.commandSelect)
+                .setPlaceholder("Select a command!")
+                .addOptions(
+                    commands.map((command, key) => {
+                        const index = keys.findIndex(k => k === key);
+                        return {
+                            label: command.builder.name,
+                            value: command.builder.name,
+                            description: command.builder.description,
+                            emoji: buildNumberEmoji(index),
+                        };
+                    })
+                );
+        },
     };
 
     public constructor(
         public readonly context: BaseButtonContext | BaseSelectMenuContext | BaseSlashCommandContext,
         public readonly options?: PaginatedHelpEmbedOptions,
     ) {
-        super(Help.buildPages(context, options), Help.buildIndex(context, options));
+        super(Help.buildPages(context, options), Help.buildInitialIndex(context, options));
     }
 
     private buildUpdateOptions(): Pick<InteractionReplyOptions | InteractionUpdateOptions, "components" | "embeds"> {
@@ -170,8 +178,17 @@ class Help extends SharedPaginatedEmbedMethods {
                     this.toPreviousPage();
                     break;
                 default:
-                    break;
+                    return;
             }
+
+            await interaction.update(this.buildUpdateOptions());
+        });
+
+        menuCollector.on("collect", async interaction => {
+            const commands = this.context.client.commands;
+            const commandName = commands.get(interaction.values[0])!.builder.name;
+
+            this.index = commands.findIndex(c => c.builder.name === commandName);
 
             await interaction.update(this.buildUpdateOptions());
         });
@@ -181,35 +198,28 @@ class Help extends SharedPaginatedEmbedMethods {
             await helpMessage.delete();
         });
 
-        menuCollector.on("collect", async interaction => {
-            const commands = this.context.client.commands;
-            const commandName = commands.get(interaction.values[0])!.builder.name;
-
-            this.index = commands.findIndex(c => c.builder.name === commandName);
-
-            interaction.update(this.buildUpdateOptions());
-        });
-
         this.sent = true;
     }
 
-    private static buildPages(...args: ConstructorParameters<typeof Help>) {
+    private static buildPages(...args: ConstructorParameters<typeof this>) {
         const [context, options] = args;
+        const { introPage } = options ?? {};
 
-        const commands = context.client.commands;
+        const commands = this.filterHiddenCommands(...args);
+        const keys = Array.from(commands.keys());
 
-        const pages = commands.mapWithIndex((command, index) =>
-            new EmbedBuilder()
+        const pages = commands.map((command, key) => {
+            const keyIndex = keys.findIndex(k => k === key);
+
+            return new EmbedBuilder()
                 .setAuthor({
                     name: `❓ Help`,
-                    iconURL: context.client.user!.avatarURL() ?? undefined
+                    iconURL: context.client.user!.avatarURL() ?? undefined,
                 })
-                .setColor(Colors.DarkGrey)
                 .setTitle(command.builder.name)
                 .setDescription(command.detailedDescription ?? command.builder.description)
                 .addFields(command.builder.options.map(o => {
                     const option = o.toJSON();
-
                     return {
                         name: option.name,
                         value: option.description,
@@ -217,10 +227,10 @@ class Help extends SharedPaginatedEmbedMethods {
                     };
                 }))
                 .setColor(Colors.DarkGrey)
-                .setFooter({ text: `Page ${index + 1} of ${commands.size + 1}` })
-        );
+                .setFooter({ text: `Page ${keyIndex + 2}/${commands.size + 1}` });
+        });
 
-        pages.unshift(options?.introPage ??
+        pages.unshift(introPage ??
             new EmbedBuilder()
                 .setAuthor({
                     name: `❓ Help`,
@@ -232,20 +242,19 @@ class Help extends SharedPaginatedEmbedMethods {
                     `Use the dropdown menu or arrow buttons to navigate through them!`,
                 ].join("\n"))
                 .setColor(Colors.DarkGrey)
-                .setFooter({ text: `Page 1 of ${commands.size + 1}` })
+                .setFooter({ text: `Page 1/${commands.size + 1}` })
         );
 
         return pages;
     }
 
-    private static buildIndex(...args: ConstructorParameters<typeof Help>) {
+    private static buildInitialIndex(...args: ConstructorParameters<typeof this>) {
         const [context, options] = args;
+        const { initialPage } = options ?? {};
 
-        if (!options?.initialPage) return 0;
+        if (!initialPage) return 0;
 
-        const { initialPage } = options;
-
-        if (!Number.isInteger(initialPage)) {
+        if (typeof initialPage === "number" && !Number.isInteger(initialPage)) {
             throw new Error("initialPage must be an integer or a function that returns a boolean");
         }
 
@@ -253,12 +262,21 @@ class Help extends SharedPaginatedEmbedMethods {
             ? initialPage
             : context.client.commands.findIndex(initialPage);
     }
+
+    private static filterHiddenCommands(...args: ConstructorParameters<typeof this>) {
+        const [context, options] = args;
+
+        return options?.hideCommand
+            ? context.client.commands.filter(options.hideCommand)
+            : context.client.commands;
+    }
 }
 
 export type PaginatedHelpEmbedOptions = {
     introPage?: EmbedBuilder;
     ephemeral?: boolean;
     initialPage?: number | ((command: Command) => boolean);
+    hideCommand?: (command: Command) => boolean;
 };
 
 const PaginatedEmbed = {
