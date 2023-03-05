@@ -1,11 +1,11 @@
 import type { HyperionClient } from "./structs";
 import assert from "node:assert/strict";
 import { ButtonRegistry, CommandRegistry, ModalRegistry, SelectMenuRegistry } from "./registries";
-import { color, HyperionError } from "./utils";
+import { color, HyperionError, useTry } from "./utils";
 import { Events } from "discord.js";
-import { tryit } from "radash";
 
 import "dotenv/config";
+import { EventRegistry } from "./registries/EventRegistry";
 
 export const start = async (client: HyperionClient, options: StartOptions) => {
     assert(
@@ -25,23 +25,27 @@ export const start = async (client: HyperionClient, options: StartOptions) => {
         )
     );
 
-    const commands = new CommandRegistry({
+    const commands = new CommandRegistry(client, {
         devGuildIds: options.devGuildIds ?? [],
     });
     await commands.register();
     assert(Reflect.set(client, "commands", commands));
 
-    const buttons = new ButtonRegistry();
+    const buttons = new ButtonRegistry(client);
     await buttons.register();
     assert(Reflect.set(client, "buttons", buttons));
 
-    const selectMenus = new SelectMenuRegistry();
+    const selectMenus = new SelectMenuRegistry(client);
     await selectMenus.register();
     assert(Reflect.set(client, "selectMenus", selectMenus));
 
-    const modals = new ModalRegistry();
+    const modals = new ModalRegistry(client);
     await modals.register();
     assert(Reflect.set(client, "modals", modals));
+
+    const events = new EventRegistry(client);
+    await events.register();
+    assert(Reflect.set(client, "events", events));
 
     client.once(Events.ClientReady, () => {
         console.log(color(c => c.greenBright`${client.name} ready!`));
@@ -71,7 +75,7 @@ export const start = async (client: HyperionClient, options: StartOptions) => {
                     throw new HyperionError(e => e.SubcommandNotFound(subcommandName));
                 }
 
-                const [error] = await tryit(() => subcommand.run(context))();
+                const [error] = await useTry(() => subcommand.run(context));
 
                 if (error) {
                     return;
@@ -80,9 +84,7 @@ export const start = async (client: HyperionClient, options: StartOptions) => {
                 return;
             }
 
-            for (const GuardFactory of command.guards ?? []) {
-                const guard = new GuardFactory();
-
+            for (const guard of command.guards ?? []) {
                 const passed = await guard.slashRun!(context);
 
                 if (!passed) {
@@ -97,7 +99,7 @@ export const start = async (client: HyperionClient, options: StartOptions) => {
                 }
             }
 
-            const [error] = await tryit(() => command.slashRun(context))();
+            const [error] = await useTry(command.slashRun(context));
 
             if (error) {
                 return;
@@ -106,56 +108,7 @@ export const start = async (client: HyperionClient, options: StartOptions) => {
             return;
         }
 
-        // if (interaction.isContextMenuCommand()) {
-        //     const command = client.commands.get(interaction.commandName);
-        //
-        //     if (!command) {
-        //         throw new HyperionError(e => e.CommandNotFound(interaction.commandName));
-        //     }
-        //
-        //     if (!command.isContextMenuCommand()) return;
-        //
-        //     const context = new client.options.ContextMenuCommandContext(interaction, client, interaction.guild);
-        //
-        //     for (const GuardFactory of command.options.guards ?? []) {
-        //         const guard = new GuardFactory();
-        //
-        //         try {
-        //             if (guard.contextMenuRun) {
-        //                 const passed = await guard.contextMenuRun(context);
-        //                 if (!passed) {
-        //                     await guard.contextMenuFail?.(context);
-        //                     return;
-        //                 }
-        //
-        //                 await interaction.editReply({
-        //                     content: guard.description,
-        //                 });
-        //                 return;
-        //             }
-        //         }
-        //         catch (e) {
-        //             const error = e as Error;
-        //             client.logger.warn(error.message);
-        //             client.logger.warn(`'${command.options.name}' failed to run.`);
-        //             return;
-        //         }
-        //     }
-        //
-        //     try {
-        //         await command.contextMenuRun(context);
-        //     }
-        //     catch (e) {
-        //         const err = e as Error;
-        //         client.logger.warn(
-        //             `Button '${command.options.name}' failed to run: ${err.stack}`
-        //         );
-        //         return;
-        //     }
-        // }
-
         if (interaction.isButton()) {
-            await interaction.deferUpdate();
             const button = client.buttons.get(interaction.customId);
 
             if (!button) {
@@ -164,9 +117,7 @@ export const start = async (client: HyperionClient, options: StartOptions) => {
 
             const context = new client.contexts.ButtonContext(client, interaction);
 
-            for (const GuardFactory of button.guards ?? []) {
-                const guard = new GuardFactory();
-
+            for (const guard of button.guards ?? []) {
                 const passed = await guard.buttonRun!(context);
 
                 if (!passed) {
@@ -181,7 +132,7 @@ export const start = async (client: HyperionClient, options: StartOptions) => {
                 }
             }
 
-            const [error] = await tryit(() => button.run(context))();
+            const [error] = await useTry(button.run(context));
 
             if (error) {
                 return;
@@ -201,9 +152,7 @@ export const start = async (client: HyperionClient, options: StartOptions) => {
 
             const context = new client.contexts.SelectMenuContext(client, interaction);
 
-            for (const GuardFactory of selectMenu.guards ?? []) {
-                const guard = new GuardFactory();
-
+            for (const guard of selectMenu.guards ?? []) {
                 const passed = await guard.selectMenuRun!(context);
 
                 if (!passed) {
@@ -218,7 +167,7 @@ export const start = async (client: HyperionClient, options: StartOptions) => {
                 }
             }
 
-            const [error] = await tryit(() => selectMenu.run(context))();
+            const [error] = await useTry(selectMenu.run(context));
 
             if (error) {
                 return;
@@ -255,7 +204,7 @@ export const start = async (client: HyperionClient, options: StartOptions) => {
             //     }
             // }
 
-            const [error] = await tryit(() => modal.run(context))();
+            const [error] = await useTry(modal.run(context));
 
             if (error) {
                 return;
@@ -271,7 +220,7 @@ export const start = async (client: HyperionClient, options: StartOptions) => {
 
             const context = new client.contexts.AutocompleteContext(client, interaction);
 
-            const [error] = await tryit(() => command.autocompleteRun!(context))();
+            const [error] = await useTry(command.autocompleteRun!(context));
 
             if (error) {
                 

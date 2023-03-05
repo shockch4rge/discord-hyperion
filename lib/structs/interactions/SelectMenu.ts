@@ -5,13 +5,13 @@ import type {
     StringSelectMenuBuilder,
     UserSelectMenuBuilder
 } from "discord.js";
-import type { ConcreteGuardConstructor } from "../Guard";
 import type { BaseSelectMenuContext } from "../contexts";
+import type { Guard } from "../Guard";
 
 export abstract class SelectMenu {
     public readonly id: string;
     public readonly builder: AnySelectMenuBuilder;
-    public readonly guards?: ConcreteGuardConstructor[];
+    public readonly guards?: Guard[];
 
     protected constructor(options: SelectMenuOptions) {
         this.id = options.id!;
@@ -25,7 +25,7 @@ export abstract class SelectMenu {
 export type SelectMenuOptions = {
     id?: string;
     builder: AnySelectMenuBuilder;
-    guards?: ConcreteGuardConstructor[];
+    guards?: Guard[];
 };
 
 export type AnySelectMenuBuilder =

@@ -1,5 +1,4 @@
-import type { BaseButtonContext, BaseSlashCommandContext } from "./contexts";
-import type { BaseSelectMenuContext } from "./contexts";
+import type { BaseButtonContext, BaseSelectMenuContext, BaseSlashCommandContext } from "./contexts";
 
 export abstract class Guard {
     public readonly name: string;
@@ -24,5 +23,3 @@ export type GuardOptions = {
     name?: string;
     description: string;
 };
-
-export type ConcreteGuardConstructor = new () => Guard;

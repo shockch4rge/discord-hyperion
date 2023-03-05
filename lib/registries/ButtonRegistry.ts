@@ -1,6 +1,5 @@
 import { Registry } from "./Registry";
-import type { Button } from "../structs/";
-import type { HyperionClient } from "../structs/";
+import type { Button, HyperionClient } from "../structs/";
 import fs from "node:fs/promises";
 import path from "node:path";
 import chalk from "chalk";
@@ -28,9 +27,7 @@ export class ButtonRegistry extends Registry<string, Button> {
 
             button.builder.setCustomId(buttonId);
 
-            for (const Guard of button.guards ?? []) {
-                const guard = new Guard();
-
+            for (const guard of button.guards ?? []) {
                 assert(
                     guard.buttonRun,
                     color(

@@ -4,12 +4,11 @@ import { Subcommand } from "../structs";
 import fs from "node:fs/promises";
 import path from "node:path";
 import assert from "node:assert/strict";
-import { color, HyperionError, isConstructor } from "../utils";
+import { color, HyperionError, isConstructor, useTry } from "../utils";
 import type { ApplicationCommand } from "discord.js";
 import { Collection, REST, Routes } from "discord.js";
 import ora from "ora";
 import type { Dirent } from "fs";
-import { tryit } from "radash";
 
 export class CommandRegistry extends Registry<string, Command> {
     public readonly discordApi = new REST({ version: "10" });
@@ -109,9 +108,7 @@ export class CommandRegistry extends Registry<string, Command> {
                     )
                 );
 
-                for (const Guard of subcommand.guards ?? []) {
-                    const guard = new Guard();
-
+                for (const guard of subcommand.guards ?? []) {
                     assert(
                         guard.slashRun,
                         color(
@@ -175,9 +172,7 @@ export class CommandRegistry extends Registry<string, Command> {
                 )
             );
 
-            for (const Guard of command.guards ?? []) {
-                const guard = new Guard();
-
+            for (const guard of command.guards ?? []) {
                 if (command.isSlashCommand()) {
                     assert(
                         guard.slashRun,
@@ -248,9 +243,11 @@ export class CommandRegistry extends Registry<string, Command> {
         });
 
         for (const guildId of this.devGuildIds) {
-            const [error, commands] = await tryit(() => this.discordApi.get(
-                Routes.applicationGuildCommands(process.env.CLIENT_ID!, guildId)
-            ))();
+            const [error, commands] = await useTry(
+                this.discordApi.get(
+                    Routes.applicationGuildCommands(process.env.CLIENT_ID!, guildId)
+                )
+            );
 
             if (error) {
                 spinner.fail(
@@ -263,13 +260,9 @@ export class CommandRegistry extends Registry<string, Command> {
             }
 
             for (const command of commands as ApplicationCommand[]) {
-                const [error] = await tryit(() => this.discordApi.delete(
-                    Routes.applicationGuildCommand(
-                        process.env.CLIENT_ID!,
-                        guildId,
-                        command.id,
-                    )
-                ))();
+                const [error] = await useTry(
+                    this.discordApi.delete(Routes.applicationGuildCommand(process.env.CLIENT_ID!, guildId, command.id))
+                );
 
                 if (error) {
                     spinner.fail(

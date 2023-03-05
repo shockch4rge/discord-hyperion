@@ -1,4 +1,3 @@
-import type { ConcreteGuardConstructor, } from "../Guard";
 import type { BaseAutocompleteContext, BaseSlashCommandContext } from "../contexts";
 import type {
     Collection,
@@ -8,6 +7,7 @@ import type {
     SlashCommandSubcommandsOnlyBuilder
 } from "discord.js";
 import type { Modify } from "../../utils";
+import type { Guard } from "../Guard";
 
 export type AnySlashCommandBuilder =
     | Omit<SlashCommandBuilder, "addSubcommand" | "addSubcommandGroup">
@@ -18,7 +18,7 @@ export type AnySlashCommandBuilder =
 export abstract class Command {
     public readonly builder: AnySlashCommandBuilder;
     public readonly detailedDescription?: string;
-    public readonly guards?: ConcreteGuardConstructor[];
+    public readonly guards?: Guard[];
     public readonly ephemeral: boolean;
 
     protected constructor(options: CommandOptions) {
@@ -44,7 +44,7 @@ export abstract class Command {
 export abstract class Subcommand<Parent extends Command = Command> {
     public readonly builder: SlashCommandSubcommandBuilder;
     public readonly detailedDescription?: string;
-    public readonly guards?: ConcreteGuardConstructor[];
+    public readonly guards?: Guard[];
     public readonly ephemeral: boolean;
 
     protected constructor(
@@ -71,8 +71,8 @@ export type WithSubcommands<C extends Command> = C & {
 export type CommandOptions = {
     detailedDescription?: string[];
     builder: AnySlashCommandBuilder;
+    guards?: Guard[];
     ephemeral?: boolean;
-    guards?: ConcreteGuardConstructor[];
 };
 
 export type SubcommandOptions = Modify<CommandOptions, { builder: SlashCommandSubcommandBuilder }>;

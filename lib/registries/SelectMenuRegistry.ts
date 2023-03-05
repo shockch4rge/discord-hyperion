@@ -1,6 +1,5 @@
 import { Registry } from "./Registry";
-import type { SelectMenu } from "../structs";
-import type { HyperionClient } from "../structs";
+import type { HyperionClient, SelectMenu } from "../structs";
 import ora from "ora";
 import chalk from "chalk";
 import fs from "node:fs/promises";
@@ -28,9 +27,7 @@ export class SelectMenuRegistry extends Registry<string, SelectMenu> {
 
             selectMenu.builder.setCustomId(selectMenuId);
 
-            for (const Guard of selectMenu.guards ?? []) {
-                const guard = new Guard();
-
+            for (const guard of selectMenu.guards ?? []) {
                 assert(
                     guard.selectMenuRun,
                     color(
