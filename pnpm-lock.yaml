@@ -12,7 +12,6 @@ specifiers:
   ora: ^5.4.1
   pino: ^8.11.0
   pino-pretty: ^9.4.0
-  radash: ^10.7.0
   ts-node: ^10.9.1
   tslib: ^2.5.0
   typescript: ^4.9.5
@@ -24,7 +23,6 @@ dependencies:
   ora: 5.4.1
   pino: 8.11.0
   pino-pretty: 9.4.0
-  radash: 10.7.0
 
 devDependencies:
   '@total-typescript/ts-reset': 0.3.7
@@ -1255,11 +1253,6 @@ packages:
 
   /quick-format-unescaped/4.0.4:
     resolution: {integrity: sha512-tYC1Q1hgyRuHgloV/YXs2w15unPVh8qfu/qCTfhTYamaw7fyhumKa2yGpdSo87vY32rIclj+4fWYQXUMs9EHvg==}
-    dev: false
-
-  /radash/10.7.0:
-    resolution: {integrity: sha512-dz5NUcGnvn080kKJnyPtqVnP4MWoiwp5qQhEQFK/qMJxCjffQd8tMR4cybxy6y5hupYa5UkSlJRSRY2F7GPBxQ==}
-    engines: {node: '>=14.18.0'}
     dev: false
 
   /readable-stream/3.6.1:
