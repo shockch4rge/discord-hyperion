@@ -1,11 +1,12 @@
 import type { HyperionClient } from "./structs";
 import assert from "node:assert/strict";
 import { ButtonRegistry, CommandRegistry, ModalRegistry, SelectMenuRegistry } from "./registries";
-import { color, HyperionError, useTry } from "./utils";
+import { color, HyperionError } from "./utils";
 import { Events } from "discord.js";
 
 import "dotenv/config";
 import { EventRegistry } from "./registries/EventRegistry";
+import { tri } from "try-v2";
 
 export const start = async (client: HyperionClient, options: StartOptions) => {
     assert(
@@ -47,10 +48,6 @@ export const start = async (client: HyperionClient, options: StartOptions) => {
     await events.register();
     assert(Reflect.set(client, "events", events));
 
-    client.once(Events.ClientReady, () => {
-        console.log(color(c => c.greenBright`${client.name} ready!`));
-    });
-
     client.on(Events.InteractionCreate, async interaction => {
         if (interaction.isChatInputCommand()) {
             const command = client.commands.get(interaction.commandName);
@@ -75,7 +72,7 @@ export const start = async (client: HyperionClient, options: StartOptions) => {
                     throw new HyperionError(e => e.SubcommandNotFound(subcommandName));
                 }
 
-                const [error] = await useTry(() => subcommand.run(context));
+                const [error] = await tri(() => subcommand.run(context));
 
                 if (error) {
                     return;
@@ -99,7 +96,7 @@ export const start = async (client: HyperionClient, options: StartOptions) => {
                 }
             }
 
-            const [error] = await useTry(command.slashRun(context));
+            const [error] = await tri(command.slashRun(context));
 
             if (error) {
                 return;
@@ -132,7 +129,7 @@ export const start = async (client: HyperionClient, options: StartOptions) => {
                 }
             }
 
-            const [error] = await useTry(button.run(context));
+            const [error] = await tri(button.run(context));
 
             if (error) {
                 return;
@@ -167,7 +164,7 @@ export const start = async (client: HyperionClient, options: StartOptions) => {
                 }
             }
 
-            const [error] = await useTry(selectMenu.run(context));
+            const [error] = await tri(selectMenu.run(context));
 
             if (error) {
                 return;
@@ -204,7 +201,7 @@ export const start = async (client: HyperionClient, options: StartOptions) => {
             //     }
             // }
 
-            const [error] = await useTry(modal.run(context));
+            const [error] = await tri(modal.run(context));
 
             if (error) {
                 return;
@@ -220,7 +217,7 @@ export const start = async (client: HyperionClient, options: StartOptions) => {
 
             const context = new client.contexts.AutocompleteContext(client, interaction);
 
-            const [error] = await useTry(command.autocompleteRun!(context));
+            const [error] = await tri(command.autocompleteRun!(context));
 
             if (error) {
                 

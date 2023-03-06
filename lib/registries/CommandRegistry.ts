@@ -4,11 +4,12 @@ import { Subcommand } from "../structs";
 import fs from "node:fs/promises";
 import path from "node:path";
 import assert from "node:assert/strict";
-import { color, HyperionError, isConstructor, useTry } from "../utils";
+import { color, HyperionError, isConstructor } from "../utils";
 import type { ApplicationCommand } from "discord.js";
 import { Collection, REST, Routes } from "discord.js";
 import ora from "ora";
 import type { Dirent } from "fs";
+import { tri } from "try-v2";
 
 export class CommandRegistry extends Registry<string, Command> {
     public readonly discordApi = new REST({ version: "10" });
@@ -192,6 +193,7 @@ export class CommandRegistry extends Registry<string, Command> {
             this.set(command.builder.name, command);
         }
 
+        // TODO: error
         const slashCommands = this.filter(command => command.isSlashCommand(), this);
 
         assert(
@@ -243,7 +245,7 @@ export class CommandRegistry extends Registry<string, Command> {
         });
 
         for (const guildId of this.devGuildIds) {
-            const [error, commands] = await useTry(
+            const [error, commands] = await tri<Error, unknown, ApplicationCommand[]>(
                 this.discordApi.get(
                     Routes.applicationGuildCommands(process.env.CLIENT_ID!, guildId)
                 )
@@ -259,8 +261,8 @@ export class CommandRegistry extends Registry<string, Command> {
                 throw new HyperionError(e => e.FailedToGetGuildCommands(guildId), error);
             }
 
-            for (const command of commands as ApplicationCommand[]) {
-                const [error] = await useTry(
+            for (const command of commands) {
+                const [error] = await tri(
                     this.discordApi.delete(Routes.applicationGuildCommand(process.env.CLIENT_ID!, guildId, command.id))
                 );
 
