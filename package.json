@@ -18,7 +18,8 @@
     "dotenv": "^16.0.3",
     "ora": "^5.4.1",
     "pino": "^8.11.0",
-    "pino-pretty": "^9.4.0"
+    "pino-pretty": "^9.4.0",
+    "try-v2": "^1.0.1"
   },
   "devDependencies": {
     "@total-typescript/ts-reset": "^0.3.7",

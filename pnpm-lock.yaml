@@ -12,6 +12,7 @@ specifiers:
   ora: ^5.4.1
   pino: ^8.11.0
   pino-pretty: ^9.4.0
+  try-v2: ^1.0.1
   ts-node: ^10.9.1
   tslib: ^2.5.0
   typescript: ^4.9.5
@@ -23,6 +24,7 @@ dependencies:
   ora: 5.4.1
   pino: 8.11.0
   pino-pretty: 9.4.0
+  try-v2: 1.0.1
 
 devDependencies:
   '@total-typescript/ts-reset': 0.3.7
@@ -1433,6 +1435,10 @@ packages:
     dependencies:
       '@tokenizer/token': 0.3.0
       ieee754: 1.2.1
+    dev: false
+
+  /try-v2/1.0.1:
+    resolution: {integrity: sha512-Z6ennthvDLai/T0fNRw1Y69tMXqV1Udp9HWItd4fKIneTziF1Sq+XfxIh2xQCiVJzt9i9rp6CUlLCdAMi8bR/g==}
     dev: false
 
   /ts-mixer/6.0.3:
