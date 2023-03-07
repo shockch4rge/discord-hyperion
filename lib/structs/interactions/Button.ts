@@ -16,7 +16,7 @@ export abstract class Button {
 
     public abstract run(context: BaseButtonContext): Promise<void>;
 
-    public getId() {
+    public get id() {
         if ("custom_id" in this.builder.data) {
             return this.builder.data.custom_id;
         }

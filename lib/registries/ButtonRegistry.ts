@@ -24,7 +24,7 @@ export class ButtonRegistry extends Registry<string, Button> {
             if (!this.isJsFile(buttonFile)) continue;
 
             const button = await this.import<Button>(path.join(this.path, buttonFile.name));
-            const buttonId = button.getId() ?? buttonFile.name;
+            const buttonId = button.id ?? buttonFile.name;
 
             // only link buttons don't have custom ids
             if (button.builder.data.style !== ButtonStyle.Link) {
