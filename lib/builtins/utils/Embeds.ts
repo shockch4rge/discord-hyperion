@@ -1,19 +1,19 @@
 import { Colors, EmbedBuilder } from "discord.js";
 
 export const Embeds = {
-    Unknown: (title: string) => new EmbedBuilder()
+    Unknown: (title = "Unknown") => new EmbedBuilder()
         .setAuthor({ name: `❓  ${title}` })
         .setColor(Colors.Grey),
-    Success: (title: string) => new EmbedBuilder()
+    Success: (title = "Success") => new EmbedBuilder()
         .setAuthor({ name: `✅  ${title}` })
         .setColor(Colors.Green),
-    Neutral: (title: string) => new EmbedBuilder()
+    Neutral: (title = "Neutral") => new EmbedBuilder()
         .setAuthor({ name: `🔹  ${title}` })
         .setColor(Colors.Blurple),
-    Warning: (title: string) => new EmbedBuilder()
+    Warning: (title = "Warning") => new EmbedBuilder()
         .setAuthor({ name: `⚠️  ${title}` })
         .setColor(Colors.Gold),
-    Error: (title: string) => new EmbedBuilder()
+    Error: (title = "Error") => new EmbedBuilder()
         .setAuthor({ name: `❌  ${title}` })
         .setColor(Colors.Red),
 };
