@@ -61,6 +61,8 @@ export abstract class SharedPaginatedEmbedMethods {
 class Help extends SharedPaginatedEmbedMethods {
     private sent = false;
 
+    private paginateIndex = 0;
+
     private componentIds = {
         start: "hyperion__help_start",
         end: "hyperion__help_end",
@@ -95,23 +97,44 @@ class Help extends SharedPaginatedEmbedMethods {
             .setDisabled(this.onFirstPage),
 
         commandSelect: () => {
-            const commands = Help.filterHiddenCommands(this.context, this.options);
-            const keys = Array.from(commands.keys());
+            // get the next 10 commands starting from `this.paginateIndex`
+            const commands = Array.from(
+                Help.filterHiddenCommands(this.context, this.options).values()
+            ).slice(this.paginateIndex, this.paginateIndex + 10);
 
-            return new StringSelectMenuBuilder()
+            const menu = new StringSelectMenuBuilder()
                 .setCustomId(this.componentIds.commandSelect)
                 .setPlaceholder("Select a command!")
-                .addOptions(
-                    commands.map((command, key) => {
-                        const index = keys.findIndex(k => k === key);
-                        return {
-                            label: command.builder.name,
-                            value: command.builder.name,
-                            description: command.builder.description,
-                            emoji: buildNumberEmoji(index),
-                        };
-                    })
-                );
+                .addOptions(commands.map((command, index) => {
+                    return {
+                        label: command.builder.name,
+                        value: command.builder.name,
+                        description: command.builder.description,
+                        emoji: buildNumberEmoji(index + 1),
+                    };
+                }));
+
+            // only add this option if there are still commands left
+            if (commands.length > 10 && this.paginateIndex + 10 < commands.length) {
+                menu.addOptions({
+                    label: `Next ${Math.min(10, commands.length - this.paginateIndex)} commands`,
+                    emoji: "➡️",
+                    value: "hyperion__paginate_next_commands",
+                    description: `There are ${commands.length - (this.paginateIndex + 1)} commands left to view.`
+                });
+            }
+
+            // only add this option if we've paginated through the first batch of commands
+            if (this.paginateIndex > 0) {
+                menu.addOptions({
+                    label: `Previous ${Math.min(10, this.paginateIndex)} commands`,
+                    emoji: "⬅️",
+                    value: "hyperion__paginate_previous_commands",
+                    description: `There are ${this.paginateIndex} commands left to view.`
+                });
+            }
+
+            return menu;
         },
     };
 
@@ -142,7 +165,7 @@ class Help extends SharedPaginatedEmbedMethods {
     public async send() {
         // avoid duplicating messages
         if (this.sent) {
-            console.warn("Avoid calling send() on a PaginatedEmbed more than once.");
+            console.warn("Avoid calling send() on an instance of PaginatedEmbed.Help more than once.");
             return;
         }
 
@@ -186,9 +209,23 @@ class Help extends SharedPaginatedEmbedMethods {
 
         menuCollector.on("collect", async interaction => {
             const commands = this.context.client.commands;
-            const commandName = commands.get(interaction.values[0])!.builder.name;
+            const value = interaction.values[0];
 
-            this.index = commands.findIndex(c => c.builder.name === commandName);
+            switch (value) {
+                case "hyperion__paginate_next_commands": {
+                    this.paginateIndex += 10;
+                    break;
+                }
+                case "hyperion__paginate_previous_commands": {
+                    this.paginateIndex -= 10;
+                    break;
+                }
+                default: {
+                    const commandName = commands.get(value)!.builder.name;
+                    this.index = commands.findIndex(c => c.builder.name === commandName);
+                    break;
+                }
+            }
 
             await interaction.update(this.buildUpdateOptions());
         });
