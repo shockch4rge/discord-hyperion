@@ -17,3 +17,8 @@ export const buildNumberEmoji = (number: number) => {
         .join("");
 };
 
+
+/**
+ * Braille whitespace (won't be spliced by Discord)
+ */
+export const INVIS_SPACE = "⠀";
