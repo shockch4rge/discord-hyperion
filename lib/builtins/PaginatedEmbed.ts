@@ -15,10 +15,21 @@ export abstract class SharedPaginatedEmbedMethods {
 
     protected constructor(public readonly pages: EmbedBuilder[], public index = 0) {}
 
+    public setPageIndex(index: number | ((index: number) => number)) {
+        if (typeof index === "number") {
+            if (!Number.isInteger(index)) return;
+
+            this.index = index;
+            return;
+        }
+
+        this.index = index(this.index);
+    }
+
     public toNextPage() {
         if (this.onLastPage) return;
 
-        this.index++;
+        this.setPageIndex(i => i + 1);
 
         return this.pages[this.index];
     }
@@ -26,7 +37,7 @@ export abstract class SharedPaginatedEmbedMethods {
     public toLastPage() {
         if (this.onLastPage) return;
 
-        this.index = this.pages.length - 1;
+        this.setPageIndex(this.pages.length - 1);
 
         return this.pages[this.index];
     }
@@ -34,13 +45,13 @@ export abstract class SharedPaginatedEmbedMethods {
     public toPreviousPage() {
         if (this.onFirstPage) return;
 
-        this.index--;
+        this.setPageIndex(i => i - 1);
 
         return this.pages[this.index];
     }
 
     public toFirstPage() {
-        this.index = 0;
+        this.setPageIndex(0);
 
         return this.pages[this.index];
     }
@@ -99,7 +110,7 @@ class Help extends SharedPaginatedEmbedMethods {
         commandSelect: () => {
             // get the next 10 commands starting from `this.paginateIndex`
             const commands = Array.from(
-                Help.filterHiddenCommands(this.context, this.options).values()
+                Help.excludeHiddenCommands(this.context, this.options).values()
             ).slice(this.paginateIndex, this.paginateIndex + 10);
 
             const menu = new StringSelectMenuBuilder()
@@ -165,7 +176,7 @@ class Help extends SharedPaginatedEmbedMethods {
     public async send() {
         // avoid duplicating messages
         if (this.sent) {
-            console.warn("Avoid calling send() on an instance of PaginatedEmbed.Help more than once.");
+            console.warn("send() can only be called once on an instance of PaginatedEmbed.Help.");
             return;
         }
 
@@ -222,7 +233,7 @@ class Help extends SharedPaginatedEmbedMethods {
                 }
                 default: {
                     const commandName = commands.get(value)!.builder.name;
-                    this.index = commands.findIndex(c => c.builder.name === commandName);
+                    this.setPageIndex(commands.findIndex(c => c.builder.name === commandName));
                     break;
                 }
             }
@@ -242,7 +253,7 @@ class Help extends SharedPaginatedEmbedMethods {
         const [context, options] = args;
         const { introPage } = options ?? {};
 
-        const commands = this.filterHiddenCommands(...args);
+        const commands = this.excludeHiddenCommands(...args);
         const keys = Array.from(commands.keys());
 
         const pages = commands.map((command, key) => {
@@ -251,7 +262,7 @@ class Help extends SharedPaginatedEmbedMethods {
             return new EmbedBuilder()
                 .setAuthor({
                     name: `❓ Help`,
-                    iconURL: context.client.user!.avatarURL() ?? undefined,
+                    iconURL: context.client.user!.displayAvatarURL() ?? undefined,
                 })
                 .setTitle(command.builder.name)
                 .setDescription(command.detailedDescription ?? command.builder.description)
@@ -271,7 +282,7 @@ class Help extends SharedPaginatedEmbedMethods {
             new EmbedBuilder()
                 .setAuthor({
                     name: `❓ Help`,
-                    iconURL: context.client.user!.avatarURL() ?? undefined
+                    iconURL: context.client.user!.displayAvatarURL() ?? undefined
                 })
                 .setDescription([
                     `Welcome to ${context.client.name}'s help menu!`,
@@ -300,7 +311,7 @@ class Help extends SharedPaginatedEmbedMethods {
             : context.client.commands.findIndex(initialPage);
     }
 
-    private static filterHiddenCommands(...args: ConstructorParameters<typeof this>) {
+    private static excludeHiddenCommands(...args: ConstructorParameters<typeof this>) {
         const [context, options] = args;
 
         return options?.hideCommand
