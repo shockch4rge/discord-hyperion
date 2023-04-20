@@ -1,5 +1,5 @@
 import type { ClientOptions } from "discord.js";
-import { Client } from "discord.js";
+import { ChannelType, Client } from "discord.js";
 import type { AnyConstructor } from "../utils";
 import { HyperionError } from "../utils";
 import type { ButtonRegistry, CommandRegistry, ModalRegistry, SelectMenuRegistry } from "../registries";
@@ -16,7 +16,7 @@ export class HyperionClient<DB = any> extends Client {
     public readonly contexts: HyperionClientContexts<DB>;
     public readonly ownerIds: string[];
     public readonly logger: BaseLogger;
-    private readonly _db?: DB;
+    private readonly database?: DB;
 
     public constructor(options: HyperionClientOptions<DB>) {
         super(options.discord);
@@ -25,20 +25,21 @@ export class HyperionClient<DB = any> extends Client {
         this.description = options.description;
         this.contexts = options.contexts;
         this.ownerIds = options.ownerIds.length ? options.ownerIds : [this.application!.owner!.id];
-        this._db = options.database;
+        this.database = options.database;
+
         this.logger = options.logger ?? new BaseLogger();
     }
 
     public get db() {
-        if (!this._db) {
+        if (!this.database) {
             throw new HyperionError(e => e.AccessedUndefinedDatabase());
         }
 
-        return this._db;
+        return this.database;
     }
 }
 
-export interface HyperionClientOptions<DB, Services = any> {
+export type HyperionClientOptions<DB> = {
     name: string;
     description: string;
     contexts: HyperionClientContexts<DB>;
@@ -46,12 +47,10 @@ export interface HyperionClientOptions<DB, Services = any> {
     ownerIds: string[];
     database?: DB;
     logger?: BaseLogger;
-    services?: Services;
-}
+};
 
 export interface HyperionClientContexts<DB> {
     SlashCommandContext: AnyConstructor;
-
     ButtonContext: AnyConstructor;
     SelectMenuContext: AnyConstructor;
     ModalContext: AnyConstructor;
