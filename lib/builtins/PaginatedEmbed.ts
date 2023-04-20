@@ -116,14 +116,12 @@ class Help extends SharedPaginatedEmbedMethods {
             const menu = new StringSelectMenuBuilder()
                 .setCustomId(this.componentIds.commandSelect)
                 .setPlaceholder("Select a command!")
-                .addOptions(commands.map((command, index) => {
-                    return {
-                        label: command.builder.name,
-                        value: command.builder.name,
-                        description: command.builder.description,
-                        emoji: buildNumberEmoji(index + 1),
-                    };
-                }));
+                .addOptions(commands.map((command, index) => ({
+                    label: command.builder.name,
+                    value: command.builder.name,
+                    description: command.builder.description,
+                    emoji: buildNumberEmoji(index + 1),
+                })));
 
             // only add this option if there are still commands left
             if (commands.length > 10 && this.paginateIndex + 10 < commands.length) {
