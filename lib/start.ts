@@ -1,35 +1,28 @@
 import type { BaseSlashCommandContext, Guard, HyperionClient } from "./structs";
-import assert from "node:assert/strict";
-import { ButtonRegistry, CommandRegistry, EventRegistry, ModalRegistry, SelectMenuRegistry } from "./registries";
-import { color, HyperionError, INVIS_SPACE } from "./utils";
-import type { EmbedBuilder, EmbedField, Guild, GuildChannelCreateOptions, TextChannel, User } from "discord.js";
-import { ChannelType, codeBlock, Events, inlineCode, PermissionsBitField, userMention } from "discord.js";
-import { Embeds } from "./builtins";
-import { tri } from "try-v2";
-
 import "dotenv/config";
 
-export const start = async (client: HyperionClient, options: StartOptions) => {
-    assert(
-        process.env.CLIENT_TOKEN,
-        color(
-            c => c.redBright`You must provide a`,
-            c => c.cyanBright`'CLIENT_TOKEN'`,
-            c => c.redBright`variable in your .env file.`,
-        )
-    );
-    assert(
-        process.env.CLIENT_ID,
-        color(
-            c => c.redBright`You must provide a`,
-            c => c.cyanBright`'CLIENT_ID'`,
-            c => c.redBright`variable in your .env file.`,
-        )
-    );
+import {
+    ChannelType, codeBlock, Events, inlineCode, PermissionsBitField, userMention
+} from "discord.js";
+import { tri } from "try-v2";
+import { z } from "zod";
 
-    const commands = new CommandRegistry(client, {
-        devGuildIds: options.devGuildIds ?? [],
-    });
+import { Embeds } from "./builtins";
+import {
+    ButtonRegistry, CommandRegistry, EventRegistry, ModalRegistry, SelectMenuRegistry
+} from "./registries";
+import { color, HyperionError, INVIS_SPACE } from "./utils";
+
+import type { EmbedBuilder, EmbedField, Guild, GuildChannelCreateOptions, TextChannel, User } from "discord.js";
+import ora from "ora";
+export const start = async (client: HyperionClient, options: StartOptions) => {
+    const [envValidationError, env] = await tri(validateProcess.parseAsync(process.env))
+
+    if (envValidationError) {
+        return;
+    }
+
+    const commands = new CommandRegistry(client, options.devGuildIds ?? []);
     await commands.register();
     Reflect.set(client, "commands", commands);
 
@@ -367,7 +360,7 @@ export const start = async (client: HyperionClient, options: StartOptions) => {
                         embed: Embeds.Success(),
                         fields: [
                             { name: "Select Menu", value: selectMenuId },
-                            { name: "Type", value: interaction.componentType.toString() }, 
+                            { name: "Type", value: interaction.componentType.toString() },
                         ],
                     })
                 ],
@@ -488,14 +481,27 @@ export const start = async (client: HyperionClient, options: StartOptions) => {
 
         client.on("guildDelete", async guild => {
             const channel = guild.channels.cache.find(c => c.name === "logs") as TextChannel | undefined;
-            if (channel) {
-                await channel?.delete();
-                await onChannelDelete?.(guild, channel);
-            }
+            if (!channel) return;
+
+            await channel.delete();
+            await onChannelDelete?.(guild, channel);
         });
     }
 
-    await client.login(process.env.CLIENT_TOKEN);
+    const loginProgress = ora({
+        text: color(c => c.magenta`Logging in...`),
+    }).start();
+
+    const [loginError] = await tri(client.login(process.env.CLIENT_TOKEN));
+
+    if (loginError) {
+        loginProgress.fail(`Error logging in.`)
+        return;
+    }
+
+    loginProgress.succeed(
+        color(c => c.magenta`${client.name} is logged in!`)
+    );
 };
 
 interface StartOptions {
@@ -562,3 +568,9 @@ export const buildLogEmbed = (template: LogEmbedTemplate) => {
 
     return embed;
 };
+
+export const validateProcess = z.object({
+    CLIENT_ID: z.string(),
+    CLIENT_TOKEN: z.string(),
+    NODE_ENV: z.string(),
+})
