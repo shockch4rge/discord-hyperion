@@ -14,10 +14,13 @@ import { tri } from "try-v2";
 export class CommandRegistry extends Registry<string, Command> {
     public readonly discordApi = new REST({ version: "10" });
     public readonly devGuildIds: string[];
+    private readonly progress = ora({
+        text: color(c => c.cyanBright`Registering application commands...`),
+    }).start();
 
-    public constructor(client: HyperionClient, options: CommandRegistryOptions) {
+    public constructor(client: HyperionClient, devGuildIds: string[]) {
         super(client, `interactions/commands`);
-        this.devGuildIds = options.devGuildIds;
+        this.devGuildIds = devGuildIds;
         this.discordApi.setToken(process.env.CLIENT_TOKEN!);
     }
 
@@ -54,7 +57,6 @@ export class CommandRegistry extends Registry<string, Command> {
         const parentCommandDir = await fs.readdir(path.join(this.path, commandFile.name), {
             withFileTypes: true,
         });
-
         const subcommandDirs = parentCommandDir.filter(f => f.isDirectory());
         const parentCommandFile = parentCommandDir.find(f => f.isFile());
 
@@ -105,7 +107,6 @@ export class CommandRegistry extends Registry<string, Command> {
                         c => c.cyanBright`[${subcommand.builder.name}]`,
                         c => c.redBright`already exists in command`,
                         c => c.cyanBright`[${parentCommand.builder.name}]`,
-                        c => c.redBright`.`
                     )
                 );
 
@@ -119,7 +120,6 @@ export class CommandRegistry extends Registry<string, Command> {
                             c => c.cyanBright`[slashRun]`,
                             c => c.redBright`method for command`,
                             c => c.cyanBright`[${parentCommand.builder.name}-${subcommand.builder.name}]`,
-                            c => c.redBright`.`
                         )
                     );
                 }
@@ -146,10 +146,6 @@ export class CommandRegistry extends Registry<string, Command> {
         );
 
         await this.cleanGuildCommands();
-
-        const spinner = ora({
-            text: color(c => c.cyanBright`Registering application commands...`),
-        }).start();
 
         const commandDir = await fs.readdir(this.path, { withFileTypes: true });
 
@@ -211,10 +207,10 @@ export class CommandRegistry extends Registry<string, Command> {
                         ...slashCommands.map(command => command.builder.toJSON()),
                     ],
                 });
-                spinner.text = `Registering commands in guild ID [${guildId}]... (${index + 1}/${this.devGuildIds.length})`;
+                this.progress.text = `Registering commands in guild ID [${guildId}]... (${index + 1}/${this.devGuildIds.length})`;
             }
 
-            spinner.succeed(
+            this.progress.succeed(
                 color(
                     c => c.green`Registered`,
                     c => c.greenBright.bold`${slashCommands.size}`,
@@ -224,25 +220,21 @@ export class CommandRegistry extends Registry<string, Command> {
                     c => c.green`development ${this.devGuildIds.length === 1 ? "guild" : "guilds"}!`
                 )
             );
-
             return;
         }
 
-        const route = Routes.applicationCommands(process.env.CLIENT_ID!);
-
-        await this.discordApi.put(route, {
+        await this.discordApi.put(
+            Routes.applicationCommands(process.env.CLIENT_ID!), {
             body: [
                 ...slashCommands.map(command => command.builder.toJSON()),
             ],
         });
 
-        spinner.succeed(`Registered global application commands!`);
+        this.progress.succeed(`Registered global application commands!`);
     }
 
     private async cleanGuildCommands() {
-        const spinner = ora({
-            text: color(c => c.cyanBright`Cleaning guild application commands...`),
-        });
+        this.progress.text = color(c => c.cyanBright`Cleaning guild application commands...`);
 
         for (const guildId of this.devGuildIds) {
             const [error, commands] = await tri<Error, unknown, ApplicationCommand[]>(
@@ -252,7 +244,7 @@ export class CommandRegistry extends Registry<string, Command> {
             );
 
             if (error) {
-                spinner.fail(
+                this.progress.fail(
                     color(
                         c => c.redBright`Failed to get commands in guild ID`,
                         c => c.cyanBright`[${guildId}]`,
@@ -267,7 +259,7 @@ export class CommandRegistry extends Registry<string, Command> {
                 );
 
                 if (error) {
-                    spinner.fail(
+                    this.progress.fail(
                         color(
                             c => c.redBright`Failed to delete command`,
                             c => c.cyanBright`[${command.name}]`,
