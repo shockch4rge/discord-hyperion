@@ -23,7 +23,12 @@ export class SelectMenuRegistry extends Registry<string, SelectMenu> {
         const [dirNotFoundError, selectMenuDir] = await tri(fs.readdir(this.path, { withFileTypes: true }));
 
         if (dirNotFoundError) {
-            this.progress.fail(`Could not find ${this.path}`);
+            this.progress.fail(
+                color(
+                    c => c.white`Could not find`,
+                    c => c.cyanBright`${this.truncatedPath}`
+                )
+            );
             return;
         }
 
@@ -55,9 +60,9 @@ export class SelectMenuRegistry extends Registry<string, SelectMenu> {
 
         this.progress.succeed(
             color(
-                c => c.greenBright`Registered`,
+                c => c.green`Registered`,
                 c => c.greenBright.bold(this.size),
-                c => c.greenBright`selectMenus!`
+                c => c.green`selectMenus!`
             )
         );
     }

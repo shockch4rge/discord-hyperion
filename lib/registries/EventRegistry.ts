@@ -24,7 +24,12 @@ export class EventRegistry extends Registry<keyof ClientEvents, Event> {
         const [dirNotFoundError, eventDir] = await tri(fs.readdir(this.path, { withFileTypes: true }));
 
         if (dirNotFoundError) {
-            this.progress.fail(`Could not find ${this.path}`);
+            this.progress.fail(
+                color(
+                    c => c.white`Could not find`,
+                    c => c.cyanBright`${this.truncatedPath}`
+                )
+            );
             return;
         }
 
@@ -50,9 +55,9 @@ export class EventRegistry extends Registry<keyof ClientEvents, Event> {
 
         this.progress.succeed(
             color(
-                c => c.greenBright`Registered`,
+                c => c.green`Registered`,
                 c => c.greenBright.bold(this.size),
-                c => c.greenBright`events!`
+                c => c.green`events!`
             )
         );
     }

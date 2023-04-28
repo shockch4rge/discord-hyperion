@@ -14,7 +14,6 @@ export class ModalRegistry extends Registry<string, Modal> {
 
     public constructor(client: HyperionClient) {
         super(client, `interactions/modals`);
-        
     }
 
     public async register() {  
@@ -23,7 +22,12 @@ export class ModalRegistry extends Registry<string, Modal> {
         const [dirNotFoundError, modalDir] = await tri(fs.readdir(this.path, { withFileTypes: true }));
 
         if (dirNotFoundError) {
-            this.progress.fail(`Could not find ${this.path}`)
+            this.progress.fail(
+                color(
+                    c => c.white`Could not find`,
+                    c => c.cyanBright`${this.truncatedPath}`
+                )
+            );
             return;
         }
 
@@ -57,9 +61,9 @@ export class ModalRegistry extends Registry<string, Modal> {
 
         this.progress.succeed(
             color(
-                c => c.greenBright`Registered`,
+                c => c.green`Registered`,
                 c => c.greenBright.bold(this.size),
-                c => c.greenBright`modals!`
+                c => c.green`modals!`
             )
         );
     }

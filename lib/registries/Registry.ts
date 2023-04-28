@@ -15,7 +15,7 @@ export abstract class Registry<K extends string, V> extends Collection<K, V> {
         this.truncatedPath = this.path
             .match(/(?<=src).*/)?.[0]
             .replaceAll(/\\/g, "/")
-            .replace(/^/, "...") ?? this.path;
+            .replace(/^/, "/src") ?? this.path;
     }
 
     protected async import<As>(filePath: string, ...args: any[]) {

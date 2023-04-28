@@ -152,7 +152,12 @@ export class CommandRegistry extends Registry<string, Command> {
         const [dirNotFoundError, commandDir] = await tri(fs.readdir(this.path, { withFileTypes: true }));
 
         if (dirNotFoundError) {
-            this.progress.fail(`Could not find ${this.path}`)
+            this.progress.fail(
+                color(
+                    c => c.white`Could not find`,
+                    c => c.cyanBright`${this.truncatedPath}`
+                )
+            );
             return;
         }
 
@@ -221,8 +226,7 @@ export class CommandRegistry extends Registry<string, Command> {
                 color(
                     c => c.green`Registered`,
                     c => c.greenBright.bold`${slashCommands.size}`,
-                    c => c.green`slash ${slashCommands.size === 1 ? "command" : "commands"}`,
-                    c => c.green`for`,
+                    c => c.green`slash ${slashCommands.size === 1 ? "command" : "commands"} for`,
                     c => c.greenBright.bold`${this.devGuildIds.length}`,
                     c => c.green`development ${this.devGuildIds.length === 1 ? "guild" : "guilds"}!`
                 )

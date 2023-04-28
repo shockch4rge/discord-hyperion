@@ -59,9 +59,9 @@ export class ButtonRegistry extends Registry<string, Button> {
 
         this.progress.succeed(
             color(
-                c => c.greenBright`Registered`,
+                c => c.green`Registered`,
                 c => c.greenBright.bold(this.size),
-                c => c.greenBright`buttons!`
+                c => c.green`buttons!`
             )
         );
     }
