@@ -7,25 +7,25 @@ import type { HyperionClient } from "../structs";
 
 export abstract class Registry<K extends string, V> extends Collection<K, V> {
     public readonly path: string;
+    public readonly truncatedPath: string;
 
     protected constructor(public readonly client: HyperionClient, pathExt: string) {
         super();
         this.path = path.join(process.cwd(), `src`, pathExt);
-    }
-
-    protected async import<As>(path: string, ...args: any[]) {
-        const Class = (await import(path)).default as new (...args: any[]) => As;
-
-        const truncatedPath = path
+        this.truncatedPath = this.path
             .match(/(?<=src).*/)?.[0]
             .replaceAll(/\\/g, "/")
-            .replace(/^/, "....") ?? path;
+            .replace(/^/, "...") ?? this.path;
+    }
+
+    protected async import<As>(filePath: string, ...args: any[]) {
+        const Class = (await import(filePath)).default as new (...args: any[]) => As;
 
         assert(
             isConstructor(Class),
             color(
                 c => c.redBright`A class was not exported at:`,
-                c => c.cyanBright(truncatedPath),
+                c => c.cyanBright(`${this.truncatedPath}/${filePath}`),
             ),
         );
 
