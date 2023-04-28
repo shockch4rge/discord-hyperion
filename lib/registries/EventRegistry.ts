@@ -7,6 +7,7 @@ import ora from "ora";
 import { color } from "../utils";
 import assert from "node:assert/strict";
 import type { ClientEvents } from "discord.js";
+import { tri } from "try-v2";
 
 export class EventRegistry extends Registry<keyof ClientEvents, Event> {
     private readonly progress = ora({
@@ -20,7 +21,12 @@ export class EventRegistry extends Registry<keyof ClientEvents, Event> {
     public async register() {
         this.progress.start();
 
-        const eventDir = await fs.readdir(this.path, { withFileTypes: true });
+        const [dirNotFoundError, eventDir] = await tri(fs.readdir(this.path, { withFileTypes: true }));
+
+        if (dirNotFoundError) {
+            this.progress.fail(`Could not find ${this.path}`);
+            return;
+        }
 
         for (const eventFile of eventDir) {
             if (!this.isJsFile(eventFile)) continue;
