@@ -133,7 +133,7 @@
         ],
         "linebreak-style": [
             "error",
-            "windows"
+            0
         ],
         "quotes": [
             "warn",
