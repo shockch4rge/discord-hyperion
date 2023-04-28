@@ -22,7 +22,7 @@ export class BaseSlashCommandContext<C extends HyperionClient = HyperionClient, 
     }
 
     public async reply(options: AltReplyOptions) {
-        if (this.interaction.replied) {
+        if (this.interaction.replied || this.interaction.deferred) {
             return this.editReply(options);
         }
 
