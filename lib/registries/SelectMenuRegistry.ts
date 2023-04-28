@@ -6,18 +6,26 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import assert from "node:assert/strict";
 import { color } from "../utils";
+import { tri } from "try-v2";
 
 export class SelectMenuRegistry extends Registry<string, SelectMenu> {
+    private readonly progress = ora({
+        text: chalk.cyanBright`Registering select menus...`,
+    });
+
     public constructor(client: HyperionClient) {
         super(client, `interactions/select-menus`);
     }
-
+    
     public async register() {
-        const spinner = ora({
-            text: chalk.cyanBright`Registering select menus...`,
-        }).start();
+        this.progress.start();
+        
+        const [dirNotFoundError, selectMenuDir] = await tri(fs.readdir(this.path, { withFileTypes: true }));
 
-        const selectMenuDir = await fs.readdir(this.path, { withFileTypes: true });
+        if (dirNotFoundError) {
+            this.progress.fail(`Could not find ${this.path}`);
+            return;
+        }
 
         for (const selectMenuFile of selectMenuDir) {
             if (!this.isJsFile(selectMenuFile)) continue;
@@ -45,7 +53,7 @@ export class SelectMenuRegistry extends Registry<string, SelectMenu> {
             this.set(selectMenuId, selectMenu);
         }
 
-        spinner.succeed(
+        this.progress.succeed(
             color(
                 c => c.greenBright`Registered`,
                 c => c.greenBright.bold(this.size),

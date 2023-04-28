@@ -9,14 +9,16 @@ import assert from "node:assert/strict";
 import type { ClientEvents } from "discord.js";
 
 export class EventRegistry extends Registry<keyof ClientEvents, Event> {
+    private readonly progress = ora({
+        text: color(c => c.cyanBright`Registering events...`),
+    });
+
     public constructor(client: HyperionClient) {
         super(client, `events`);
     }
 
     public async register() {
-        const spinner = ora({
-            text: chalk.cyanBright`Registering events...`,
-        }).start();
+        this.progress.start();
 
         const eventDir = await fs.readdir(this.path, { withFileTypes: true });
 
@@ -40,7 +42,7 @@ export class EventRegistry extends Registry<keyof ClientEvents, Event> {
             this.set(event.name ?? eventFile.name, event);
         }
 
-        spinner.succeed(
+        this.progress.succeed(
             color(
                 c => c.greenBright`Registered`,
                 c => c.greenBright.bold(this.size),

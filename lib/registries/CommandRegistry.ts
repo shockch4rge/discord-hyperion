@@ -16,7 +16,7 @@ export class CommandRegistry extends Registry<string, Command> {
     public readonly devGuildIds: string[];
     private readonly progress = ora({
         text: color(c => c.cyanBright`Registering application commands...`),
-    }).start();
+    });
 
     public constructor(client: HyperionClient, devGuildIds: string[]) {
         super(client, `interactions/commands`);
@@ -106,7 +106,7 @@ export class CommandRegistry extends Registry<string, Command> {
                         c => c.redBright`Subcommand`,
                         c => c.cyanBright`[${subcommand.builder.name}]`,
                         c => c.redBright`already exists in command`,
-                        c => c.cyanBright`[${parentCommand.builder.name}]`,
+                        c => c.cyanBright`[${parentCommand.builder.name}]`
                     )
                 );
 
@@ -134,10 +134,12 @@ export class CommandRegistry extends Registry<string, Command> {
     }
 
     public async register() {
+        this.progress.start();
+
         assert(
             process.env.NODE_ENV === "development" || process.env.NODE_ENV === "production",
             color(
-                c => c.redBright`Unrecognized NODE_ENV value. Must be either:`,
+                c => c.redBright`Unrecognized NODE_ENV value. Must be either`,
                 c => c.cyanBright`'development'`,
                 c => c.redBright`or`,
                 c => c.cyanBright`'production'`,
@@ -147,7 +149,12 @@ export class CommandRegistry extends Registry<string, Command> {
 
         await this.cleanGuildCommands();
 
-        const commandDir = await fs.readdir(this.path, { withFileTypes: true });
+        const [dirNotFoundError, commandDir] = await tri(fs.readdir(this.path, { withFileTypes: true }));
+
+        if (dirNotFoundError) {
+            this.progress.fail(`Could not find ${this.path}`)
+            return;
+        }
 
         for (const commandFile of commandDir) {
             // has subcommands

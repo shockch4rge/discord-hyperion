@@ -7,18 +7,26 @@ import ora from "ora";
 import assert from "node:assert/strict";
 import { color } from "../utils";
 import { ButtonStyle, ComponentType } from "discord.js";
+import { tri } from "try-v2";
 
 export class ButtonRegistry extends Registry<string, Button> {
+    private readonly progress = ora({
+        text: color(c => c.cyanBright`Registering buttons...`),
+    });
+
     public constructor(client: HyperionClient) {
         super(client, `interactions/buttons`);
     }
 
     public async register() {
-        const spinner = ora({
-            text: chalk.cyanBright`Registering buttons...`,
-        }).start();
+        this.progress.start();
 
-        const buttonDir = await fs.readdir(this.path, { withFileTypes: true });
+        const [dirNotFoundError, buttonDir] = await tri(fs.readdir(this.path, { withFileTypes: true }));
+
+        if (dirNotFoundError) {
+            this.progress.fail(`Could not find ${this.path}`);
+            return;
+        }
 
         for (const buttonFile of buttonDir) {
             if (!this.isJsFile(buttonFile)) continue;
@@ -49,7 +57,7 @@ export class ButtonRegistry extends Registry<string, Button> {
             this.set(buttonId, button);
         }
 
-        spinner.succeed(
+        this.progress.succeed(
             color(
                 c => c.greenBright`Registered`,
                 c => c.greenBright.bold(this.size),
