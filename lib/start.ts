@@ -15,6 +15,7 @@ import { color, HyperionError, INVIS_SPACE } from "./utils";
 
 import type { EmbedBuilder, EmbedField, Guild, GuildChannelCreateOptions, TextChannel, User } from "discord.js";
 import ora from "ora";
+import { ignoredInteractionIds } from "./utils/ignoredInteractionIds";
 export const start = async (client: HyperionClient, options: StartOptions) => {
     const [envValidationError, env] = await tri(validateProcess.parseAsync(process.env))
 
@@ -111,8 +112,9 @@ export const start = async (client: HyperionClient, options: StartOptions) => {
                 if (!logSubcommand || !error) return;
 
                 if (error) {
+                    console.log(error);
                     await client.logger.warn({
-                        message: `Failed to run subcommand`,
+                        message: `Failed to run subcommand: ${error.message}`,
                         embeds: message => [
                             buildLogEmbed({
                                 user,
@@ -182,7 +184,7 @@ export const start = async (client: HyperionClient, options: StartOptions) => {
 
             if (error) {
                 await client.logger.warn({
-                    message: `Failed to run command`,
+                    message: `Failed to run command: ${error.message}`,
                     embeds: message => [
                         buildLogEmbed({
                             user,
@@ -212,6 +214,9 @@ export const start = async (client: HyperionClient, options: StartOptions) => {
 
         if (interaction.isButton()) {
             const buttonId = interaction.customId;
+
+            if (ignoredInteractionIds.includes(buttonId)) return;
+
             const button = client.buttons.get(buttonId);
 
             if (!button) {
@@ -287,6 +292,9 @@ export const start = async (client: HyperionClient, options: StartOptions) => {
 
         if (interaction.isAnySelectMenu()) {
             const selectMenuId = interaction.customId;
+
+            if (ignoredInteractionIds.includes(selectMenuId)) return;
+
             const selectMenu = client.selectMenus.get(selectMenuId);
 
             if (!selectMenu) {

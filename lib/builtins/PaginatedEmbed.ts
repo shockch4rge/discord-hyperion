@@ -11,6 +11,19 @@ import {
 } from "discord.js";
 import { buildNumberEmoji, Time } from "../utils";
 
+export const SharedPaginatedEmbedComponentIds = {
+    NextPage: "hyperion__paginate_next",
+    PreviousPage: "hyperion__paginate_previous",
+}
+
+export const HelpPaginatedEmbedComponentIds = {
+    Start: "hyperion__help_start",
+    End: "hyperion__help_end",
+    Next: "hyperion__help_next",
+    Previous: "hyperion__help_previous",
+    CommandSelect: "hyperion__help_command_select"
+} as const;
+
 export abstract class SharedPaginatedEmbedMethods {
 
     protected constructor(public readonly pages: EmbedBuilder[], public index = 0) {}
@@ -71,38 +84,29 @@ export abstract class SharedPaginatedEmbedMethods {
 
 class Help extends SharedPaginatedEmbedMethods {
     private sent = false;
-
     private paginateIndex = 0;
-
-    private componentIds = {
-        start: "hyperion__help_start",
-        end: "hyperion__help_end",
-        next: "hyperion__help_next",
-        previous: "hyperion__help_previous",
-        commandSelect: "hyperion__help_command_select"
-    } as const;
 
     private readonly components = {
         navigateStart: () => new ButtonBuilder()
-            .setCustomId(this.componentIds.start)
+            .setCustomId(HelpPaginatedEmbedComponentIds.Start)
             .setEmoji("⏮️")
             .setStyle(ButtonStyle.Secondary)
             .setDisabled(this.onFirstPage),
 
         navigateEnd: () => new ButtonBuilder()
-            .setCustomId(this.componentIds.end)
+            .setCustomId(HelpPaginatedEmbedComponentIds.End)
             .setEmoji("⏭️")
             .setStyle(ButtonStyle.Secondary)
             .setDisabled(this.onLastPage),
 
         navigateNext: () => new ButtonBuilder()
-            .setCustomId(this.componentIds.next)
+            .setCustomId(HelpPaginatedEmbedComponentIds.Next)
             .setEmoji("▶️")
             .setStyle(ButtonStyle.Secondary)
             .setDisabled(this.onLastPage),
 
         navigatePrevious: () => new ButtonBuilder()
-            .setCustomId(this.componentIds.previous)
+            .setCustomId(HelpPaginatedEmbedComponentIds.Previous)
             .setEmoji("◀️")
             .setStyle(ButtonStyle.Secondary)
             .setDisabled(this.onFirstPage),
@@ -114,7 +118,7 @@ class Help extends SharedPaginatedEmbedMethods {
             ).slice(this.paginateIndex, this.paginateIndex + 10);
 
             const menu = new StringSelectMenuBuilder()
-                .setCustomId(this.componentIds.commandSelect)
+                .setCustomId(HelpPaginatedEmbedComponentIds.CommandSelect)
                 .setPlaceholder("Select a command!")
                 .addOptions(commands.map((command, index) => ({
                     label: command.builder.name,
@@ -123,12 +127,12 @@ class Help extends SharedPaginatedEmbedMethods {
                     emoji: buildNumberEmoji(index + 1),
                 })));
 
-            // only add this option if there are still commands left
+            // only add this option if there are more than 10 commands registered
             if (commands.length > 10 && this.paginateIndex + 10 < commands.length) {
                 menu.addOptions({
                     label: `Next ${Math.min(10, commands.length - this.paginateIndex)} commands`,
                     emoji: "➡️",
-                    value: "hyperion__paginate_next_commands",
+                    value: SharedPaginatedEmbedComponentIds.NextPage,
                     description: `There are ${commands.length - (this.paginateIndex + 1)} commands left to view.`
                 });
             }
@@ -138,7 +142,7 @@ class Help extends SharedPaginatedEmbedMethods {
                 menu.addOptions({
                     label: `Previous ${Math.min(10, this.paginateIndex)} commands`,
                     emoji: "⬅️",
-                    value: "hyperion__paginate_previous_commands",
+                    value: SharedPaginatedEmbedComponentIds.PreviousPage,
                     description: `There are ${this.paginateIndex} commands left to view.`
                 });
             }
@@ -197,16 +201,16 @@ class Help extends SharedPaginatedEmbedMethods {
 
         buttonCollector.on("collect", async interaction => {
             switch (interaction.customId) {
-                case this.componentIds.start:
+                case HelpPaginatedEmbedComponentIds.Start:
                     this.toFirstPage();
                     break;
-                case this.componentIds.end:
+                case HelpPaginatedEmbedComponentIds.End:
                     this.toLastPage();
                     break;
-                case this.componentIds.next:
+                case HelpPaginatedEmbedComponentIds.Next:
                     this.toNextPage();
                     break;
-                case this.componentIds.previous:
+                case HelpPaginatedEmbedComponentIds.Previous:
                     this.toPreviousPage();
                     break;
                 default:
@@ -221,11 +225,11 @@ class Help extends SharedPaginatedEmbedMethods {
             const value = interaction.values[0];
 
             switch (value) {
-                case "hyperion__paginate_next_commands": {
+                case SharedPaginatedEmbedComponentIds.NextPage: {
                     this.paginateIndex += 10;
                     break;
                 }
-                case "hyperion__paginate_previous_commands": {
+                case SharedPaginatedEmbedComponentIds.PreviousPage: {
                     this.paginateIndex -= 10;
                     break;
                 }
