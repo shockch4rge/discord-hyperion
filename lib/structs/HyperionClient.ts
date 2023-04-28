@@ -13,7 +13,7 @@ export class HyperionClient<DB = any> extends Client {
 
     public readonly name: string;
     public readonly description: string;
-    public readonly contexts: HyperionClientContexts<DB>;
+    public readonly contexts: HyperionClientContexts;
     public readonly ownerIds: string[];
     public readonly logger: BaseLogger;
     private readonly database?: DB;
@@ -42,14 +42,14 @@ export class HyperionClient<DB = any> extends Client {
 export type HyperionClientOptions<DB> = {
     name: string;
     description: string;
-    contexts: HyperionClientContexts<DB>;
+    contexts: HyperionClientContexts;
     discord: ClientOptions;
     ownerIds: string[];
     database?: DB;
     logger?: BaseLogger;
 };
 
-export interface HyperionClientContexts<DB> {
+export interface HyperionClientContexts {
     SlashCommandContext: AnyConstructor;
     ButtonContext: AnyConstructor;
     SelectMenuContext: AnyConstructor;
